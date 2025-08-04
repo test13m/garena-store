@@ -59,4 +59,9 @@ export default function NavigationLinks({ mobile, onLinkClick }: NavigationLinks
             pathname === href ? 'text-primary font-semibold border-b-2 border-primary' : ''
           )}
         >
-          
+          {label}
+        </Link>
+      ))}
+    </>
+  );
+}
