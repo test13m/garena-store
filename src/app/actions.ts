@@ -472,7 +472,7 @@ export async function getOrdersForAdmin(
 
   const totalOrders = await db.collection('orders').countDocuments(query);
   const hasMore = skip + orders.length < totalOrders;
-  return { orders: JSON.parse(JSON.stringify(orders)), hasMore };
+  return { orders, hasMore };
 }
 
 export async function getUsersForAdmin(page: number, sort: string, search: string) {
@@ -494,5 +494,5 @@ export async function getUsersForAdmin(page: number, sort: string, search: strin
   const totalUsers = await db.collection('users').countDocuments(query);
   const hasMore = skip + users.length < totalUsers;
 
-  return { users: JSON.parse(JSON.stringify(users)), hasMore };
+  return { users, hasMore };
 }
