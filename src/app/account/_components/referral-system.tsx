@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { generateReferralLink } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,10 +18,12 @@ export default function ReferralSystem() {
     const result = await generateReferralLink();
     if (result.success && result.link) {
       setLink(result.link);
-      toast({
-        title: 'Success',
-        description: result.message,
-      });
+      if (result.message !== 'Your existing referral link.') {
+        toast({
+          title: 'Success',
+          description: result.message,
+        });
+      }
     } else {
       toast({
         variant: 'destructive',
@@ -31,13 +33,21 @@ export default function ReferralSystem() {
     }
     setIsLoading(false);
   };
+  
+  useEffect(() => {
+    // Attempt to fetch the link when the component mounts
+    handleGenerateLink();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCopyToClipboard = () => {
-    navigator.clipboard.writeText(link);
-    toast({
-      title: 'Copied!',
-      description: 'Referral link copied to clipboard.',
-    });
+    if (link) {
+      navigator.clipboard.writeText(link);
+      toast({
+        title: 'Copied!',
+        description: 'Referral link copied to clipboard.',
+      });
+    }
   };
 
   return (
@@ -45,11 +55,15 @@ export default function ReferralSystem() {
       <CardHeader>
         <CardTitle>Referral System</CardTitle>
         <CardDescription>
-          Generate a unique link to share with your friends. Earn rewards when they sign up and make a purchase!
+          {link ? 'Share this unique link with your friends.' : 'Generate a unique link to share with your friends. Earn rewards when they sign up and make a purchase!'}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {link ? (
+        {isLoading && !link ? (
+          <div className="flex justify-center">
+            <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+          </div>
+        ) : link ? (
           <div className="flex items-center space-x-2">
             <Input value={link} readOnly />
             <Button variant="outline" size="icon" onClick={handleCopyToClipboard}>

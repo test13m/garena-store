@@ -248,10 +248,9 @@ export async function generateReferralLink(): Promise<{ success: boolean; link?:
             return { success: false, message: 'Could not generate link. Site configuration is missing.' };
         }
 
-
         if (user.referralCode) {
             const link = `${baseUrl}/?ref=${user.referralCode}`;
-            return { success: true, link, message: 'Referral link already exists.' };
+            return { success: true, link, message: 'Your existing referral link.' };
         }
 
         const referralCode = randomBytes(4).toString('hex'); // 8 characters
