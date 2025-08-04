@@ -1,18 +1,14 @@
 
 import { OrderList } from '../_components/order-list';
-import { isAdminAuthenticated, getOrdersForAdmin } from '@/app/actions';
-import { redirect } from 'next/navigation';
+import { getOrdersForAdmin } from '@/app/actions';
 
-const status = ['Failed'];
+const status = ['Completed'];
 
-export default async function AdminFailedPage({
+export default async function AdminSuccessPage({
   searchParams,
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const isAdmin = await isAdminAuthenticated();
-  if (!isAdmin) redirect('/admin/login');
-
   const page = typeof searchParams.page === 'string' ? Number(searchParams.page) : 1;
   const sort = typeof searchParams.sort === 'string' ? searchParams.sort : 'asc';
   const search = typeof searchParams.search === 'string' ? searchParams.search : '';
@@ -22,7 +18,7 @@ export default async function AdminFailedPage({
   return (
     <OrderList
       initialOrders={orders}
-      title="Failed Orders"
+      title="Successful Orders"
       status={status}
       initialHasMore={hasMore}
     />

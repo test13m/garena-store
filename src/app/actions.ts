@@ -13,6 +13,9 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { unstable_noStore as noStore } from 'next/cache';
 
+const key = new TextEncoder().encode(process.env.SESSION_SECRET || 'your-fallback-secret-for-session');
+
+
 export async function askQuestion(
   input: CustomerFAQChatbotInput
 ): Promise<{ success: boolean; answer?: string; error?: string }> {
@@ -398,7 +401,12 @@ export async function submitUtr(orderId: string, utr: string): Promise<{ success
 }
 
 // --- Admin Actions ---
-export async function verifyAdminPassword(prevState: any, formData: FormData) {
+type AdminFormState = {
+  message: string;
+  success: boolean;
+};
+
+export async function verifyAdminPassword(prevState: AdminFormState, formData: FormData): Promise<AdminFormState> {
   const password = formData.get('password') as string;
   const adminPassword = process.env.ADMIN_PASSWORD;
 
@@ -412,8 +420,7 @@ export async function verifyAdminPassword(prevState: any, formData: FormData) {
   if (isValid) {
     const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
     cookies().set('admin_session', 'true', { expires, httpOnly: true, sameSite: 'strict', path: '/' });
-    revalidatePath('/admin');
-    redirect('/admin');
+    return { message: 'Login successful.', success: true };
   } else {
     return { message: 'Incorrect password.', success: false };
   }
@@ -421,7 +428,8 @@ export async function verifyAdminPassword(prevState: any, formData: FormData) {
 
 export async function isAdminAuthenticated(): Promise<boolean> {
   noStore();
-  return cookies().get('admin_session')?.value === 'true';
+  const session = cookies().get('admin_session')?.value;
+  return session === 'true';
 }
 
 export async function logoutAdmin() {
@@ -463,6 +471,7 @@ export async function getOrdersForAdmin(
   search: string, 
   status: ('Pending UTR' | 'Processing' | 'Completed' | 'Failed')[]
 ) {
+  noStore();
   const db = await connectToDatabase();
   const skip = (page - 1) * PAGE_SIZE;
 
@@ -484,6 +493,7 @@ export async function getOrdersForAdmin(
 }
 
 export async function getUsersForAdmin(page: number, sort: string, search: string) {
+  noStore();
   const db = await connectToDatabase();
   const skip = (page - 1) * PAGE_SIZE;
 

@@ -2,8 +2,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import LoginForm from './_components/login-form';
 import { isAdminAuthenticated } from '@/app/actions';
 import { redirect } from 'next/navigation';
+import { unstable_noStore as noStore } from 'next/cache';
 
 export default async function AdminLoginPage() {
+  noStore();
   const isAdmin = await isAdminAuthenticated();
   if (isAdmin) {
     redirect('/admin');

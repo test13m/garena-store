@@ -1,18 +1,14 @@
 
-import { OrderList } from '../_components/order-list';
-import { isAdminAuthenticated, getOrdersForAdmin } from '@/app/actions';
-import { redirect } from 'next/navigation';
+import { OrderList } from './_components/order-list';
+import { getOrdersForAdmin } from '@/app/actions';
 
-const status = ['Completed'];
+const status = ['Pending UTR', 'Processing'];
 
-export default async function AdminSuccessPage({
+export default async function AdminHomePage({
   searchParams,
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const isAdmin = await isAdminAuthenticated();
-  if (!isAdmin) redirect('/admin/login');
-
   const page = typeof searchParams.page === 'string' ? Number(searchParams.page) : 1;
   const sort = typeof searchParams.sort === 'string' ? searchParams.sort : 'asc';
   const search = typeof searchParams.search === 'string' ? searchParams.search : '';
@@ -22,8 +18,9 @@ export default async function AdminSuccessPage({
   return (
     <OrderList
       initialOrders={orders}
-      title="Successful Orders"
+      title="Pending Orders"
       status={status}
+      showActions={true}
       initialHasMore={hasMore}
     />
   );

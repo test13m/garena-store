@@ -1,13 +1,13 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useEffect } from 'react';
 import { useFormStatus } from 'react-dom';
 import { verifyAdminPassword } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -20,8 +20,8 @@ function SubmitButton() {
 
 export default function LoginForm() {
   const { toast } = useToast();
-  
-  const [state, formAction] = useActionState(verifyAdminPassword, undefined);
+  const router = useRouter();
+  const [state, formAction] = useActionState(verifyAdminPassword, { message: '', success: false });
 
   useEffect(() => {
     if (state?.message && !state.success) {
@@ -31,7 +31,10 @@ export default function LoginForm() {
           description: state.message
       })
     }
-  }, [state, toast]);
+     if (state?.success) {
+      router.push('/admin');
+    }
+  }, [state, toast, router]);
 
 
   return (
