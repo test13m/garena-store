@@ -9,7 +9,7 @@ import {
   SheetTrigger,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -35,10 +35,7 @@ export default function Header() {
 
         <div className="flex items-center gap-4">
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-             <Button asChild className={cn(
-                'bg-primary/10 hover:bg-primary/20 text-primary',
-                pathname === '/order' && 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
-             )}>
+             <Button asChild className={'bg-primary/10 hover:bg-primary/20 text-primary'}>
                 <Link href="/order">
                     Order
                     <ShoppingCart className="h-4 w-4" />
