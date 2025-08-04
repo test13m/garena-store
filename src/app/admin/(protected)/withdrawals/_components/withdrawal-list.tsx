@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -16,6 +17,18 @@ interface WithdrawalListProps {
     title: string;
     showActions?: boolean;
     initialHasMore: boolean;
+}
+
+const FormattedDate = ({ dateString }: { dateString: string }) => {
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+
+    if (!mounted) {
+        return null;
+    }
+
+    const date = new Date(dateString);
+    return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
 }
 
 export default function WithdrawalList({ initialWithdrawals, status, title, showActions = false, initialHasMore }: WithdrawalListProps) {
@@ -97,7 +110,7 @@ export default function WithdrawalList({ initialWithdrawals, status, title, show
                                             }>{w.status}</Badge>
                                         </div>
                                         <CardDescription>
-                                            Request Date: {w.createdAt}
+                                            Request Date: <FormattedDate dateString={w.createdAt} />
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent>

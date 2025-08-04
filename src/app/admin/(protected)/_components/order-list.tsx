@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -29,6 +30,18 @@ interface OrderListProps {
     title: string;
     showActions?: boolean;
     initialHasMore: boolean;
+}
+
+const FormattedDate = ({ dateString }: { dateString: string }) => {
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+
+    if (!mounted) {
+        return null;
+    }
+
+    const date = new Date(dateString);
+    return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
 }
 
 export function OrderList({ initialOrders, status, title, showActions = false, initialHasMore }: OrderListProps) {
@@ -89,9 +102,6 @@ export function OrderList({ initialOrders, status, title, showActions = false, i
         });
     };
     
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleString();
-    }
 
     return (
         <div className="space-y-6">
@@ -128,7 +138,7 @@ export function OrderList({ initialOrders, status, title, showActions = false, i
                                             }>{order.status}</Badge>
                                         </div>
                                         <CardDescription>
-                                            Order Date: {formatDate(order.createdAt)}
+                                            Order Date: <FormattedDate dateString={order.createdAt} />
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent>
