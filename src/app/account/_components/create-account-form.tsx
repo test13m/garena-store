@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useEffect } from 'react';
+import { useFormStatus } from 'react-dom';
 import { createAccount } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { CardContent, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
-import { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 
@@ -23,7 +23,7 @@ function SubmitButton() {
 
 export default function CreateAccountForm() {
   const initialState = { message: '', success: false };
-  const [state, dispatch] = useFormState(createAccount, initialState);
+  const [state, dispatch] = useActionState(createAccount, initialState);
   const { toast } = useToast();
 
   useEffect(() => {
