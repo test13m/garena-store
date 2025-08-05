@@ -32,16 +32,6 @@ export default function CoinSystem({ user }: CoinSystemProps) {
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const { toast } = useToast();
   
-  // Effect to open the modal if the user is not logged in when component mounts.
-  useEffect(() => {
-    if (!user) {
-      // setIsRegisterModalOpen(true); // Don't open automatically, wait for click
-    } else {
-      setIsRegisterModalOpen(false);
-    }
-  }, [user]);
-
-
   const handleTransfer = async (formData: FormData) => {
     const recipientGamingId = formData.get('recipientId') as string;
     const amount = Number(formData.get('amount'));
@@ -70,9 +60,9 @@ export default function CoinSystem({ user }: CoinSystemProps) {
           <div className="flex justify-center items-center gap-4">
             
             <Link 
-              href={user ? "/watch-ad" : "#"} 
+              href="/watch-ad"
               onClick={handleUnregisteredClick} 
-              className="flex-1 max-w-[150px]"
+              className="flex-1 max-w-[120px]"
             >
               <Card className="hover:bg-primary/5 transition-colors">
                 <CardContent className="p-2 flex flex-col items-center justify-center text-center">
@@ -85,12 +75,11 @@ export default function CoinSystem({ user }: CoinSystemProps) {
             
             <Dialog open={isTransferOpen} onOpenChange={setIsTransferOpen}>
               <DialogTrigger asChild>
-                  <div onClick={handleUnregisteredClick} className="flex-1 max-w-[150px] cursor-pointer">
+                  <div onClick={handleUnregisteredClick} className="flex-1 max-w-[120px] cursor-pointer">
                       <Card className="hover:bg-primary/5 transition-colors">
                         <CardContent className="p-2 flex flex-col items-center justify-center text-center">
                             <Coins className="w-5 h-5 mx-auto text-amber-500" />
                             <p className="font-semibold mt-1 text-xs"> {user ? `${user.coins} Coins` : "Your Wallet"}</p>
-                            <p className="text-xs text-muted-foreground">Click to transfer</p>
                         </CardContent>
                       </Card>
                   </div>
