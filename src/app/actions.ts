@@ -85,7 +85,6 @@ export async function createAccount(prevState: FormState, formData: FormData): P
 
   try {
     const db = await connectToDatabase();
-    // This part is legacy and might be removed. The new app uses a different `users` collection schema.
     const existingUser = await db.collection('legacy_users').findOne({ username });
 
     if (existingUser) {
@@ -100,7 +99,6 @@ export async function createAccount(prevState: FormState, formData: FormData): P
         if (referringUser) {
             newUser.referredBy = referringUser.username;
         }
-        // Clear the cookie after use
         cookies().delete('referral_code');
     }
 
@@ -229,7 +227,6 @@ export async function changeUsername(prevState: FormState, formData: FormData): 
 
         await db.collection('legacy_users').updateOne({ username: session.username }, { $set: { username: newUsername } });
         
-        // Create a new session with the new username
         await createSession(newUsername);
         revalidatePath('/account');
         return { success: true, message: 'Username changed successfully!' };
@@ -262,7 +259,7 @@ export async function generateReferralLink(): Promise<{ success: boolean; link?:
             return { success: true, link, message: 'Your existing referral link.' };
         }
 
-        const referralCode = randomBytes(4).toString('hex'); // 8 characters
+        const referralCode = randomBytes(4).toString('hex');
         await db.collection('legacy_users').updateOne(
             { username: session.username },
             { $set: { referralCode } }
@@ -277,6 +274,7 @@ export async function generateReferralLink(): Promise<{ success: boolean; link?:
         return { success: false, message: 'An unexpected error occurred.' };
     }
 }
+
 
 // --- User Actions ---
 export async function registerGamingId(gamingId: string): Promise<{ success: boolean; message: string; user?: User }> {
@@ -295,29 +293,25 @@ export async function registerGamingId(gamingId: string): Promise<{ success: boo
     }
 
     const referralCode = cookies().get('referral_code')?.value;
-    const referringUser = referralCode ? await db.collection<User>('users').findOne({ referralCode: referralCode }) : null;
+    const referringUser = referralCode ? await db.collection<any>('legacy_users').findOne({ referralCode: referralCode }) : null;
 
     const newUser: Omit<User, '_id'> = {
       gamingId,
-      coins: 800, // Default coins for new users
+      coins: 800,
       createdAt: new Date(),
-      referralCode: randomBytes(4).toString('hex'), // Own referral code
-      referredBy: referringUser ? referringUser.gamingId : undefined,
+      referralCode: randomBytes(4).toString('hex'),
+      referredBy: referringUser ? referringUser.username : undefined,
     };
 
     const result = await db.collection('users').insertOne(newUser);
     
-    // Set cookie to remember the user
     cookies().set('gaming_id', gamingId, { maxAge: 365 * 24 * 60 * 60, httpOnly: true });
     
     const createdUser = { ...newUser, _id: result.insertedId };
     
-    // Reward the referring user
     if (referringUser) {
-        await db.collection('users').updateOne(
-            { _id: referringUser._id },
-            { $inc: { coins: 500 } } // Example: give 500 coins for a referral
-        );
+        // No coin reward on signup, reward on purchase
+        cookies().delete('referral_code');
     }
 
     revalidatePath('/');
@@ -337,11 +331,10 @@ export async function getUserData(): Promise<User | null> {
         const db = await connectToDatabase();
         const user = await db.collection<User>('users').findOne({ gamingId });
         if (!user) {
-            // Clear cookie if user not found in DB
             cookies().delete('gaming_id');
             return null;
         }
-        return JSON.parse(JSON.stringify(user)); // Serialize to plain object
+        return JSON.parse(JSON.stringify(user));
     } catch (error) {
         console.error('Failed to fetch user data:', error);
         return null;
@@ -402,9 +395,7 @@ export async function transferCoins(
         throw new Error('Recipient not found.');
       }
 
-      // Deduct from sender
       await db.collection('users').updateOne({ gamingId: senderGamingId }, { $inc: { coins: -amount } }, { session });
-      // Add to recipient
       await db.collection('users').updateOne({ gamingId: recipientGamingId }, { $inc: { coins: amount } }, { session });
       
       resultMessage = `Successfully transferred ${amount} coins to ${recipientGamingId}.`;
@@ -436,7 +427,6 @@ export async function getOrdersForUser(): Promise<Order[]> {
             .sort({ createdAt: -1 })
             .toArray();
 
-        // Manually serialize the data to convert ObjectId and Date to strings
         return ordersFromDb.map((order: any) => ({
             ...order,
             _id: order._id.toString(),
@@ -480,7 +470,7 @@ export async function createRedeemCodeOrder(
         paymentMethod: 'Redeem Code',
         status: 'Processing',
         redeemCode: validatedData.data.redeemCode,
-        referralCode: user.referredBy,
+        referredBy: user.referredBy, // Save the referrer's username
         coinsUsed,
         finalPrice,
         createdAt: new Date(),
@@ -489,12 +479,10 @@ export async function createRedeemCodeOrder(
     try {
         await db.collection('orders').insertOne(newOrder);
 
-        // Deduct coins from user
         if (coinsUsed > 0) {
             await db.collection('users').updateOne({ _id: new ObjectId(user._id) }, { $inc: { coins: -coinsUsed } });
         }
 
-        // Send email notification
         await sendRedeemCodeNotification({
           gamingId: newOrder.gamingId,
           productName: newOrder.productName,
@@ -537,7 +525,7 @@ export async function submitUtr(product: Product, gamingId: string, utr: string,
         paymentMethod: 'UPI',
         status: 'Processing',
         utr: validatedData.data.utr,
-        referralCode: user.referredBy,
+        referredBy: user.referredBy, // Save the referrer's username
         coinsUsed,
         finalPrice,
         createdAt: new Date(),
@@ -546,7 +534,6 @@ export async function submitUtr(product: Product, gamingId: string, utr: string,
     try {
         await db.collection('orders').insertOne(newOrder);
         
-        // Deduct coins from user
         if (coinsUsed > 0) {
             await db.collection('users').updateOne({ _id: new ObjectId(user._id) }, { $inc: { coins: -coinsUsed } });
         }
@@ -606,7 +593,6 @@ export async function updateOrderStatus(orderId: string, status: 'Completed' | '
         return { success: false };
     }
 
-    const { ObjectId } = await import('mongodb');
     const db = await connectToDatabase();
     
     const order = await db.collection<Order>('orders').findOne({ _id: new ObjectId(orderId) });
@@ -615,6 +601,16 @@ export async function updateOrderStatus(orderId: string, status: 'Completed' | '
     }
 
     await db.collection('orders').updateOne({ _id: new ObjectId(orderId) }, { $set: { status } });
+    
+    // If order is completed and was referred, reward the referrer
+    if (status === 'Completed' && order.referredBy) {
+        const rewardAmount = order.finalPrice * 0.50;
+        await db.collection('legacy_users').updateOne(
+            { username: order.referredBy },
+            { $inc: { walletBalance: rewardAmount } }
+        );
+    }
+
 
     revalidatePath('/admin');
     revalidatePath('/admin/success');
@@ -650,7 +646,7 @@ export async function getOrdersForAdmin(
   if (search) {
       query.$or = [
           { gamingId: { $regex: search, $options: 'i' } },
-          { referralCode: { $regex: search, $options: 'i' } }
+          { referredBy: { $regex: search, $options: 'i' } }
       ]
   }
 
@@ -664,7 +660,6 @@ export async function getOrdersForAdmin(
   const totalOrders = await db.collection('orders').countDocuments(query);
   const hasMore = skip + ordersFromDb.length < totalOrders;
 
-  // Manually serialize the data to convert ObjectId and Date to strings
   const orders = ordersFromDb.map((order: any) => ({
     ...order,
     _id: order._id.toString(),
@@ -694,7 +689,6 @@ export async function getUsersForAdmin(page: number, sort: string, search: strin
   const totalUsers = await db.collection('users').countDocuments(query);
   const hasMore = skip + usersFromDb.length < totalUsers;
 
-  // Manually serialize the data
   const users = usersFromDb.map((user: any) => ({
     ...user,
     _id: user._id.toString(),
@@ -774,7 +768,6 @@ export async function requestWithdrawal(formData: FormData): Promise<FormState> 
         return { success: false, message: 'Insufficient balance.' };
     }
     
-    // Deduct from wallet immediately
     await db.collection('legacy_users').updateOne({ _id: user._id }, { $inc: { walletBalance: -amount } });
 
     const newWithdrawal: Omit<Withdrawal, '_id'> = {
@@ -883,12 +876,12 @@ async function seedProducts() {
     console.log('Products found, ensuring data is up to date...');
     const bulkOps = productsToSeed.map(p => ({
       updateOne: {
-        filter: { name: p.name }, // Use name as the unique key to find products
+        filter: { name: p.name },
         update: {
           $set: {
             price: p.price,
             imageUrl: p.imageUrl,
-            coinsApplicable: p.coinsApplicable, // Ensure this field is updated
+            coinsApplicable: p.coinsApplicable,
           },
           $setOnInsert: {
             name: p.name,
@@ -897,7 +890,7 @@ async function seedProducts() {
             isVanished: false,
           }
         },
-        upsert: true, // Create the product if it doesn't exist
+        upsert: true,
       },
     }));
 
@@ -908,8 +901,6 @@ async function seedProducts() {
   }
 }
   
-// Immediately invoke the seeding function.
-// This will run once when the server starts.
 seedProducts().catch(console.error);
   
 export async function getProducts(): Promise<Product[]> {
@@ -1042,5 +1033,3 @@ export async function addCoinsToUser(gamingId: string, amount: number): Promise<
         return { success: false, message: 'An error occurred.' };
     }
 }
-
-    

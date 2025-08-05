@@ -11,7 +11,6 @@ import { updateOrderStatus, getOrdersForAdmin } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 
-// Re-define Order type for the client-side component, ensuring _id is a string
 type ClientOrder = {
     _id: string;
     productName: string;
@@ -21,7 +20,7 @@ type ClientOrder = {
     paymentMethod: string;
     utr?: string;
     redeemCode?: string;
-    referralCode?: string;
+    referredBy?: string;
     productPrice: number;
     coinsUsed: number;
     finalPrice: number;
@@ -114,7 +113,7 @@ export function OrderList({ initialOrders, status, title, showActions = false, i
                         <CardTitle>{title}</CardTitle>
                         <div className="flex items-center gap-2">
                             <form onSubmit={handleSearch} className="flex items-center gap-2">
-                                <Input name="search" placeholder="Search by Gaming/Referral ID..." defaultValue={searchParams.get('search') || ''} className="w-56"/>
+                                <Input name="search" placeholder="Search by Gaming/Referrer ID..." defaultValue={searchParams.get('search') || ''} className="w-56"/>
                                 <Button type="submit" variant="outline" size="icon"><Search className="h-4 w-4" /></Button>
                             </form>
                             <Button variant="outline" onClick={handleSortToggle}>
@@ -150,7 +149,7 @@ export function OrderList({ initialOrders, status, title, showActions = false, i
                                             <p><strong>Payment Method:</strong> {order.paymentMethod}</p>
                                             {order.utr && <p><strong>UTR:</strong> {order.utr}</p>}
                                             {order.redeemCode && <p><strong>Redeem Code:</strong> {order.redeemCode}</p>}
-                                            {order.referralCode && <p><strong>Referral Code:</strong> {order.referralCode}</p>}
+                                            {order.referredBy && <p><strong>Referred By:</strong> {order.referredBy}</p>}
                                             <p><strong>Original Price:</strong> ₹{order.productPrice}</p>
                                             <p className="flex items-center gap-1"><strong><Coins className="w-4 h-4 text-amber-500" /> Used:</strong> {order.coinsUsed}</p>
                                             <p className="font-bold"><strong>Final Price Paid:</strong> ₹{order.finalPrice}</p>
