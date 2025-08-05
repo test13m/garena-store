@@ -31,6 +31,12 @@ export default function CoinSystem({ user }: CoinSystemProps) {
   const [isTransferOpen, setIsTransferOpen] = useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!user) {
+      setIsRegisterModalOpen(true);
+    }
+  }, [user]);
   
   const handleTransfer = async (formData: FormData) => {
     const recipientGamingId = formData.get('recipientId') as string;
