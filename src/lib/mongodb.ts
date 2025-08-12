@@ -1,4 +1,4 @@
-import { MongoClient } from 'mongodb';
+import { Db, MongoClient } from 'mongodb';
 
 const MONGODB_URI = process.env.MONGODB_URI || '';
 const MONGODB_DB = process.env.MONGODB_DB || 'garena-gears';
@@ -8,9 +8,9 @@ if (!MONGODB_URI) {
 }
 
 let cachedClient: MongoClient | null = null;
-let cachedDb: any = null;
+let cachedDb: Db | null = null;
 
-export async function connectToDatabase() {
+export async function connectToDatabase(): Promise<Db> {
   if (cachedDb) {
     return cachedDb;
   }

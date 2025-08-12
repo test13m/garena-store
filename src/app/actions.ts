@@ -85,24 +85,24 @@ export async function createAccount(prevState: FormState, formData: FormData): P
 
   try {
     const db = await connectToDatabase();
-    const existingUser = await db.collection('legacy_users').findOne({ username });
+    const existingUser = await db.collection<LegacyUser>('legacy_users').findOne({ username });
 
     if (existingUser) {
       return { success: false, message: 'Username already exists.' };
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser: any = { username, password: hashedPassword, walletBalance: 0, createdAt: new Date() };
+    const newUser: Omit<LegacyUser, '_id'> = { username, password: hashedPassword, walletBalance: 0, createdAt: new Date() };
 
     if (referralCode) {
-        const referringUser = await db.collection('legacy_users').findOne({ referralCode });
+        const referringUser = await db.collection<LegacyUser>('legacy_users').findOne({ referralCode });
         if (referringUser) {
             newUser.referredBy = referringUser.username;
         }
         cookies().delete('referral_code');
     }
 
-    await db.collection('legacy_users').insertOne(newUser);
+    await db.collection<LegacyUser>('legacy_users').insertOne(newUser as LegacyUser);
 
     await createSession(username);
     revalidatePath('/account');
@@ -124,7 +124,7 @@ export async function login(prevState: FormState, formData: FormData): Promise<F
 
   try {
     const db = await connectToDatabase();
-    const user = await db.collection('legacy_users').findOne({ username });
+    const user = await db.collection<LegacyUser>('legacy_users').findOne({ username });
 
     if (!user) {
       return { success: false, message: 'Incorrect username or password.' };
@@ -166,7 +166,7 @@ export async function changePassword(prevState: FormState, formData: FormData): 
 
     try {
         const db = await connectToDatabase();
-        const user = await db.collection('legacy_users').findOne({ username: session.username });
+        const user = await db.collection<LegacyUser>('legacy_users').findOne({ username: session.username });
 
         if (!user) {
             return { success: false, message: 'User not found.' };
@@ -178,7 +178,7 @@ export async function changePassword(prevState: FormState, formData: FormData): 
         }
 
         const hashedNewPassword = await bcrypt.hash(newPassword, 10);
-        await db.collection('legacy_users').updateOne({ username: session.username }, { $set: { password: hashedNewPassword } });
+        await db.collection<LegacyUser>('legacy_users').updateOne({ username: session.username }, { $set: { password: hashedNewPassword } });
         
         return { success: true, message: 'Password changed successfully!' };
     } catch (error) {
@@ -209,12 +209,12 @@ export async function changeUsername(prevState: FormState, formData: FormData): 
     try {
         const db = await connectToDatabase();
 
-        const existingNewUser = await db.collection('legacy_users').findOne({ username: newUsername });
+        const existingNewUser = await db.collection<LegacyUser>('legacy_users').findOne({ username: newUsername });
         if (existingNewUser) {
             return { success: false, message: 'New username is already taken.' };
         }
         
-        const currentUser = await db.collection('legacy_users').findOne({ username: session.username });
+        const currentUser = await db.collection<LegacyUser>('legacy_users').findOne({ username: session.username });
 
         if (!currentUser) {
             return { success: false, message: 'Current user not found.' };
@@ -225,7 +225,7 @@ export async function changeUsername(prevState: FormState, formData: FormData): 
             return { success: false, message: 'Incorrect password.' };
         }
 
-        await db.collection('legacy_users').updateOne({ username: session.username }, { $set: { username: newUsername } });
+        await db.collection<LegacyUser>('legacy_users').updateOne({ username: session.username }, { $set: { username: newUsername } });
         
         await createSession(newUsername);
         revalidatePath('/account');
@@ -246,7 +246,7 @@ export async function generateReferralLink(): Promise<{ success: boolean; link?:
 
     try {
         const db = await connectToDatabase();
-        const user = await db.collection('legacy_users').findOne({ username: session.username });
+        const user = await db.collection<LegacyUser>('legacy_users').findOne({ username: session.username });
 
         if (!user) {
             return { success: false, message: 'User not found.' };
@@ -260,7 +260,7 @@ export async function generateReferralLink(): Promise<{ success: boolean; link?:
         }
 
         const referralCode = randomBytes(4).toString('hex');
-        await db.collection('legacy_users').updateOne(
+        await db.collection<LegacyUser>('legacy_users').updateOne(
             { username: session.username },
             { $set: { referralCode } }
         );
@@ -301,7 +301,7 @@ export async function registerGamingId(gamingId: string): Promise<{ success: boo
       referredByCode: referralCode, // Store the referral code
     };
 
-    const result = await db.collection('users').insertOne(newUser);
+    const result = await db.collection<User>('users').insertOne(newUser as User);
     
     cookies().set('gaming_id', gamingId, { maxAge: 365 * 24 * 60 * 60, httpOnly: true });
     
@@ -378,17 +378,17 @@ export async function transferCoins(
   }
 
   const db = await connectToDatabase();
-  const session = db.client.startSession();
+  const session = db.s.client.startSession();
 
   try {
     let resultMessage = '';
     await session.withTransaction(async () => {
-      const sender = await db.collection('users').findOne({ gamingId: senderGamingId }, { session });
+      const sender = await db.collection<User>('users').findOne({ gamingId: senderGamingId }, { session });
       if (!sender || sender.coins < amount) {
         throw new Error('Insufficient coins or sender not found.');
       }
 
-      const recipient = await db.collection('users').findOne({ gamingId: recipientGamingId }, { session });
+      const recipient = await db.collection<User>('users').findOne({ gamingId: recipientGamingId }, { session });
       if (!recipient) {
         throw new Error('Recipient not found.');
       }
@@ -425,11 +425,12 @@ export async function getOrdersForUser(): Promise<Order[]> {
             .sort({ createdAt: -1 })
             .toArray();
 
-        return ordersFromDb.map((order: any) => ({
+        // Convert ObjectId to string for client-side usage
+        return ordersFromDb.map((order: Order) => ({
             ...order,
             _id: order._id.toString(),
-            createdAt: order.createdAt.toISOString(),
-        }));
+            createdAt: order.createdAt.toString(),
+        })) as unknown as Order[];
     } catch (error) {
         console.error("Failed to fetch user orders:", error);
         return [];
@@ -475,7 +476,7 @@ export async function createRedeemCodeOrder(
     };
 
     try {
-        await db.collection('orders').insertOne(newOrder);
+        await db.collection<Order>('orders').insertOne(newOrder as Order);
 
         if (coinsUsed > 0) {
             await db.collection('users').updateOne({ _id: new ObjectId(user._id) }, { $inc: { coins: -coinsUsed } });
@@ -530,7 +531,7 @@ export async function submitUtr(product: Product, gamingId: string, utr: string,
     };
 
     try {
-        await db.collection('orders').insertOne(newOrder);
+        await db.collection<Order>('orders').insertOne(newOrder as Order);
         
         if (coinsUsed > 0) {
             await db.collection('users').updateOne({ _id: new ObjectId(user._id) }, { $inc: { coins: -coinsUsed } });
@@ -603,7 +604,7 @@ export async function updateOrderStatus(orderId: string, status: 'Completed' | '
     // If order is completed and was referred, reward the referrer
     if (status === 'Completed' && order.referralCode) {
         const rewardAmount = order.finalPrice * 0.50;
-        await db.collection('legacy_users').updateOne(
+        await db.collection<LegacyUser>('legacy_users').updateOne(
             { referralCode: order.referralCode },
             { $inc: { walletBalance: rewardAmount } }
         );
@@ -711,18 +712,18 @@ export async function getWalletData(): Promise<{ walletBalance: number; withdraw
     }
 
     const db = await connectToDatabase();
-    const user = await db.collection<any>('legacy_users').findOne({ username: session.username });
+    const user = await db.collection<LegacyUser>('legacy_users').findOne({ username: session.username });
     if (!user) {
         return { walletBalance: 0, withdrawals: [] };
     }
     
     const withdrawalsFromDb = await db.collection<Withdrawal>('withdrawals').find({ userId: user._id.toString() }).sort({ createdAt: -1 }).toArray();
 
-    const withdrawals = withdrawalsFromDb.map((w: any) => ({
+    const withdrawals = withdrawalsFromDb.map((w) => ({
         ...w,
         _id: w._id.toString(),
         createdAt: w.createdAt.toISOString(),
-    }));
+    })) as unknown as Withdrawal[];
 
     return { walletBalance: user.walletBalance || 0, withdrawals };
 }
@@ -747,7 +748,7 @@ export async function requestWithdrawal(formData: FormData): Promise<FormState> 
         return { success: false, message: 'You must be logged in.' };
     }
     const db = await connectToDatabase();
-    const user = await db.collection<any>('legacy_users').findOne({ username: session.username });
+    const user = await db.collection<LegacyUser>('legacy_users').findOne({ username: session.username });
     if (!user) {
         return { success: false, message: 'User not found.' };
     }
@@ -769,7 +770,7 @@ export async function requestWithdrawal(formData: FormData): Promise<FormState> 
         return { success: false, message: 'Insufficient balance.' };
     }
     
-    await db.collection('legacy_users').updateOne({ _id: user._id }, { $inc: { walletBalance: -amount } });
+    await db.collection<LegacyUser>('legacy_users').updateOne({ _id: user._id }, { $inc: { walletBalance: -amount } });
 
     const newWithdrawal: Omit<Withdrawal, '_id'> = {
         userId: user._id.toString(),
@@ -786,7 +787,7 @@ export async function requestWithdrawal(formData: FormData): Promise<FormState> 
         createdAt: new Date(),
     };
 
-    await db.collection('withdrawals').insertOne(newWithdrawal);
+    await db.collection<Withdrawal>('withdrawals').insertOne(newWithdrawal as Withdrawal);
     
     revalidatePath('/account');
     revalidatePath('/admin/withdrawals');
@@ -855,12 +856,19 @@ const productsToSeed = [
   { name: "MP40 - Predatory Cobra", price: 5000, imageUrl: "/img/mp40.png", dataAiHint: 'cobra snake', coinsApplicable: 2000 },
   { name: "AK47 - Blue Flame Draco", price: 5000, imageUrl: "/img/ak47.png", dataAiHint: 'blue dragon', coinsApplicable: 2000 },
   { name: "LOL Emote", price: 3000, imageUrl: "/img/lol.png", dataAiHint: 'laughing face', coinsApplicable: 1000 },
-  { name: "MP40 - UCHIHA'S LEGACY", price: 4000, imageUrl: "/img/mp40u.png", dataAiHint: 'anime weapon', coinsApplicable: 2500 },
+  { 
+    name: "MP40 - UCHIHA'S LEGACY", 
+    price: 4000, 
+    imageUrl: "/img/mp40u.png", 
+    dataAiHint: 'anime weapon', 
+    coinsApplicable: 2500,
+    endDate: new Date('2024-08-14T00:00:00+05:30'), // Aug 14, 12 AM IST
+  },
 ];
 
 async function seedProducts() {
   const db = await connectToDatabase();
-  const productCollection = db.collection('products');
+  const productCollection = db.collection<Product>('products');
   const count = await productCollection.countDocuments();
 
   const productsToInsert = productsToSeed.map(p => ({
@@ -872,7 +880,7 @@ async function seedProducts() {
 
   if (count === 0) {
     console.log('No products found, seeding database...');
-    await productCollection.insertMany(productsToInsert);
+    await productCollection.insertMany(productsToInsert as any[]);
     console.log(`Database seeded with ${productsToInsert.length} products.`);
   } else {
     console.log('Products found, ensuring data is up to date...');
@@ -884,6 +892,7 @@ async function seedProducts() {
             price: p.price,
             imageUrl: p.imageUrl,
             coinsApplicable: p.coinsApplicable,
+            endDate: p.endDate,
           },
           $setOnInsert: {
             name: p.name,
@@ -897,7 +906,7 @@ async function seedProducts() {
     }));
 
     if (bulkOps.length > 0) {
-      await productCollection.bulkWrite(bulkOps);
+      await productCollection.bulkWrite(bulkOps as any);
       console.log(`Upserted ${bulkOps.length} products to ensure data is correct.`);
     }
   }
@@ -908,7 +917,7 @@ seedProducts().catch(console.error);
 export async function getProducts(): Promise<Product[]> {
     noStore();
     const db = await connectToDatabase();
-    const productsFromDb = await db.collection('products')
+    const productsFromDb = await db.collection<Product>('products')
       .find({ isVanished: false })
       .sort({ price: 1 })
       .toArray();
@@ -926,6 +935,7 @@ const productUpdateSchema = z.object({
     quantity: z.coerce.number().int().positive('Quantity must be a positive integer.'),
     isAvailable: z.enum(['on', 'off']).optional(),
     coinsApplicable: z.coerce.number().int().min(0, 'Applicable coins cannot be negative.'),
+    endDate: z.string().optional(),
 });
 
 export async function updateProduct(productId: string, formData: FormData): Promise<{ success: boolean; message: string }> {
@@ -943,12 +953,14 @@ export async function updateProduct(productId: string, formData: FormData): Prom
 
     const { name, price, quantity, coinsApplicable } = validatedFields.data;
     const isAvailable = rawFormData.isAvailable === 'on';
+    const endDate = validatedFields.data.endDate ? new Date(validatedFields.data.endDate) : undefined;
+
 
     const { ObjectId } = await import('mongodb');
     const db = await connectToDatabase();
-    await db.collection('products').updateOne(
-        { _id: new ObjectId(productId) },
-        { $set: { name, price, quantity, isAvailable, coinsApplicable } }
+    await db.collection<Product>('products').updateOne(
+        { _id: new ObjectId(productId) as any },
+        { $set: { name, price, quantity, isAvailable, coinsApplicable, endDate: endDate } }
     );
     
     revalidatePath('/');
@@ -964,8 +976,8 @@ export async function vanishProduct(productId: string): Promise<{ success: boole
 
     const { ObjectId } = await import('mongodb');
     const db = await connectToDatabase();
-    await db.collection('products').updateOne(
-        { _id: new ObjectId(productId) },
+    await db.collection<Product>('products').updateOne(
+        { _id: new ObjectId(productId) as any },
         { $set: { isVanished: true } }
     );
 
@@ -978,7 +990,7 @@ export async function vanishProduct(productId: string): Promise<{ success: boole
 export async function getVanishedProducts() {
     noStore();
     const db = await connectToDatabase();
-    const productsFromDb = await db.collection('products')
+    const productsFromDb = await db.collection<Product>('products')
       .find({ isVanished: true })
       .sort({ price: 1 })
       .toArray();
@@ -997,8 +1009,8 @@ export async function restoreProduct(productId: string): Promise<{ success: bool
 
     const { ObjectId } = await import('mongodb');
     const db = await connectToDatabase();
-    await db.collection('products').updateOne(
-        { _id: new ObjectId(productId) },
+    await db.collection<Product>('products').updateOne(
+        { _id: new ObjectId(productId) as any },
         { $set: { isVanished: false } }
     );
 
@@ -1020,7 +1032,7 @@ export async function addCoinsToUser(gamingId: string, amount: number): Promise<
 
     try {
         const db = await connectToDatabase();
-        const result = await db.collection('users').updateOne(
+        const result = await db.collection<User>('users').updateOne(
             { gamingId },
             { $inc: { coins: amount } }
         );

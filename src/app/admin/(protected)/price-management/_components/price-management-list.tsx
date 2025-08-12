@@ -16,6 +16,17 @@ interface PriceManagementListProps {
   initialProducts: Product[];
 }
 
+// Helper to format date for datetime-local input
+const formatDateForInput = (date?: Date) => {
+  if (!date) return '';
+  const d = new Date(date);
+  // Adjust for timezone offset to display local time correctly in the input
+  const timeZoneOffset = d.getTimezoneOffset() * 60000;
+  const localDate = new Date(d.getTime() - timeZoneOffset);
+  return localDate.toISOString().slice(0, 16);
+};
+
+
 export default function PriceManagementList({ initialProducts }: PriceManagementListProps) {
   const [products, setProducts] = useState(initialProducts);
   const [isPending, startTransition] = useTransition();
@@ -57,8 +68,8 @@ export default function PriceManagementList({ initialProducts }: PriceManagement
         {products.map((product) => (
           <form key={product._id} action={(formData) => handleUpdate(product._id, formData)}>
             <Card>
-              <CardContent className="p-6 grid grid-cols-1 md:grid-cols-5 gap-6">
-                <div className="space-y-2 md:col-span-2">
+              <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="space-y-2 lg:col-span-2">
                   <Label htmlFor={`name-${product._id}`}>Product Name</Label>
                   <Input
                     id={`name-${product._id}`}
@@ -96,7 +107,17 @@ export default function PriceManagementList({ initialProducts }: PriceManagement
                     defaultValue={product.quantity}
                   />
                 </div>
-                <div className="flex items-end justify-between md:col-start-5">
+                 <div className="space-y-2 lg:col-span-2">
+                  <Label htmlFor={`endDate-${product._id}`}>End Date (Optional)</Label>
+                  <Input
+                    id={`endDate-${product._id}`}
+                    name="endDate"
+                    type="datetime-local"
+                    defaultValue={formatDateForInput(product.endDate)}
+                  />
+                </div>
+
+                <div className="flex items-end justify-between md:col-start-2 lg:col-start-auto">
                     <div className="space-y-2">
                         <Label htmlFor={`isAvailable-${product._id}`}>Available</Label>
                         <div className="flex items-center h-10">

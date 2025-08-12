@@ -10,17 +10,79 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PurchaseModal from './purchase-modal';
 import type { Product, User } from '@/lib/definitions';
-import { Ban, Coins } from 'lucide-react';
+import { Ban, Coins, Timer } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 
 interface ProductCardProps {
   product: Product;
   user: User | null;
 }
+
+const CountdownTimer = ({ endDate }: { endDate: Date }) => {
+  const [timeLeft, setTimeLeft] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+  });
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+    const timer = setInterval(() => {
+      const now = new Date();
+      const difference = new Date(endDate).getTime() - now.getTime();
+
+      if (difference > 0) {
+        setTimeLeft({
+          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+          minutes: Math.floor((difference / 1000 / 60) % 60),
+          seconds: Math.floor((difference / 1000) % 60),
+        });
+      } else {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+        clearInterval(timer);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [endDate]);
+  
+  if (!isMounted) {
+    return null;
+  }
+
+  const { days, hours, minutes, seconds } = timeLeft;
+
+  const hasEnded = days === 0 && hours === 0 && minutes === 0 && seconds === 0;
+
+  return (
+    <div className={cn(
+        "absolute top-2 right-2 bg-background/80 backdrop-blur-sm text-destructive font-bold text-xs px-2 py-1 rounded-full shadow-md flex items-center gap-1.5 border border-destructive/20",
+        hasEnded && "text-muted-foreground border-muted-foreground/20"
+      )}>
+        <Timer className="w-3.5 h-3.5" />
+        {hasEnded ? (
+            <span>Ended</span>
+        ) : (
+             <div className="flex items-center gap-1 font-mono tracking-tighter">
+                {days > 0 && <span>{String(days).padStart(2, '0')}d</span>}
+                <span>{String(hours).padStart(2, '0')}h</span>
+                <span>{String(minutes).padStart(2, '0')}m</span>
+                <span>{String(seconds).padStart(2, '0')}s</span>
+            </div>
+        )}
+       
+    </div>
+  );
+};
+
 
 export default function ProductCard({ product, user }: ProductCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -47,6 +109,7 @@ export default function ProductCard({ product, user }: ProductCardProps) {
         <CardHeader className="p-0">
           <div className="relative aspect-video">
             <Image src={product.imageUrl} alt={product.name} fill className="object-cover" data-ai-hint={product.dataAiHint}/>
+            {product.endDate && <CountdownTimer endDate={product.endDate} />}
           </div>
         </CardHeader>
         <CardContent className="flex-grow p-4">
