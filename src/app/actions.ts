@@ -850,11 +850,12 @@ const productsToSeed = [
   { name: "2180 Diamonds", price: 1600, imageUrl: "/img/2180.png", dataAiHint: 'diamond jewel', coinsApplicable: 900 },
   { name: "5600 Diamonds", price: 4000, imageUrl: "/img/5600.png", dataAiHint: 'diamond jewel', coinsApplicable: 2000 },
   { name: "Weekly Membership", price: 159, imageUrl: "/img/weekly.png", dataAiHint: 'membership card', coinsApplicable: 59 },
-  { name: "Monthly Membership", price: 800, imageUrl: "/img/monthly.png", dataAiHint: 'membership card', coinsApplicable: 500 },
+  { name: "Monthly Membership", price: 800, imageUrl: "/img/monthly.png", dataAiHint: 'membership card', coinsApplicable: 300 },
   { name: "Itachi Uchiha Bundle", price: 5000, imageUrl: "/img/itachi.png", dataAiHint: 'anime character', coinsApplicable: 4000 },
   { name: "MP40 - Predatory Cobra", price: 5000, imageUrl: "/img/mp40.png", dataAiHint: 'cobra snake', coinsApplicable: 2000 },
   { name: "AK47 - Blue Flame Draco", price: 5000, imageUrl: "/img/ak47.png", dataAiHint: 'blue dragon', coinsApplicable: 2000 },
   { name: "LOL Emote", price: 3000, imageUrl: "/img/lol.png", dataAiHint: 'laughing face', coinsApplicable: 1000 },
+  { name: "MP40 - UCHIHA'S LEGACY", price: 4000, imageUrl: "/img/mp40-uchiha.png", dataAiHint: 'anime weapon', coinsApplicable: 2500 },
 ];
 
 async function seedProducts() {
