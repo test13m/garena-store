@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -72,12 +73,15 @@ const CountdownTimer = ({ endDate }: { endDate: Date }) => {
         {hasEnded ? (
             <span>Ended</span>
         ) : (
-             <div className="flex items-center gap-1 font-mono tracking-tighter">
-                {days > 0 && <span>{String(days).padStart(2, '0')}d</span>}
-                <span>{String(hours).padStart(2, '0')}h</span>
-                <span>{String(minutes).padStart(2, '0')}m</span>
-                <span>{String(seconds).padStart(2, '0')}s</span>
-            </div>
+            <>
+                <span>Ending soon:</span>
+                <div className="flex items-center gap-1 font-mono tracking-tighter">
+                    {days > 0 && <span>{String(days).padStart(2, '0')}d</span>}
+                    <span>{String(hours).padStart(2, '0')}h</span>
+                    <span>{String(minutes).padStart(2, '0')}m</span>
+                    <span>{String(seconds).padStart(2, '0')}s</span>
+                </div>
+            </>
         )}
        
     </div>
