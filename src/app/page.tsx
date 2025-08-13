@@ -9,7 +9,7 @@ import { ObjectId } from 'mongodb';
 
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.garenagears.com'),
+  metadataBase: new URL('https://freefire-max-garena.vercel.app'),
   title: 'Garena Gears - Free Fire Top-Up & Diamonds',
   description: 'The official, secure, and trusted Garena store for discounted Free Fire diamonds, memberships, and top-ups. Get unbeatable prices on in-game items for Free Fire MAX.',
   keywords: [
