@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Script from 'next/script';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Product, User } from '@/lib/definitions';
 import { Loader2, X, ShieldCheck, Smartphone, Globe, Coins } from 'lucide-react';
 import Image from 'next/image';
-import { createRedeemCodeOrder, submitUtr, registerGamingId as registerAction } from '@/app/actions';
+import { createRedeemCodeOrder, registerGamingId as registerAction, createRazorpayOrder, verifyRazorpayPayment } from '@/app/actions';
 import QrCode from 'react-qr-code';
 import {
   Select,
@@ -20,8 +21,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import Link from 'next/link';
-import { type ObjectId } from 'mongodb';
-
 
 // The product passed to this modal has its _id serialized to a string
 interface ProductWithStringId extends Omit<Product, '_id'> {
@@ -34,9 +33,14 @@ interface PurchaseModalProps {
   onClose: () => void;
 }
 
-type ModalStep = 'register' | 'details' | 'payment' | 'redeem' | 'utr' | 'processing';
+declare global {
+    interface Window {
+        Razorpay: any;
+    }
+}
 
-const upiId = "rzpquickpays973495.rzp@ypbiz";
+
+type ModalStep = 'register' | 'details' | 'processing';
 
 export default function PurchaseModal({ product, user: initialUser, onClose }: PurchaseModalProps) {
   const [isOpen, setIsOpen] = useState(true);
@@ -44,9 +48,7 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
   const [step, setStep] = useState<ModalStep>(initialUser ? 'details' : 'register');
   const [gamingId, setGamingId] = useState(initialUser?.gamingId || '');
   const [redeemCode, setRedeemCode] = useState('');
-  const [utr, setUtr] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
   const router = useRouter();
   const { toast } = useToast();
 
@@ -60,25 +62,6 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
     router.push('/order');
   };
 
-  useEffect(() => {
-    if (step === 'payment') {
-        const timer = setInterval(() => {
-            setTimeLeft(prev => (prev > 0 ? prev - 1 : 0));
-        }, 1000);
-
-        const utrPopupTimer = setTimeout(() => {
-            if (step === 'payment') {
-                setStep('utr');
-            }
-        }, 20000); // 20 seconds
-
-        return () => {
-            clearInterval(timer);
-            clearTimeout(utrPopupTimer);
-        };
-    }
-  }, [step]);
-
   const handleRegister = async () => {
     if (!gamingId) {
       toast({ variant: 'destructive', title: 'Error', description: 'Please enter your Gaming ID.' });
@@ -88,7 +71,7 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
     const result = await registerAction(gamingId);
     if (result.success && result.user) {
         toast({ title: 'Success', description: result.message });
-        setUser(result.user as User);
+        setUser(result.user);
         setStep('details');
     } else {
         toast({ variant: 'destructive', title: 'Error', description: result.message });
@@ -97,7 +80,70 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
   };
 
   const handleBuyWithUpi = async () => {
-    setStep('payment');
+    setIsLoading(true);
+    
+    if (!user) {
+        toast({ variant: 'destructive', title: 'Error', description: 'User not found.'});
+        setIsLoading(false);
+        return;
+    }
+
+    const razorpayOrderResult = await createRazorpayOrder(finalPrice);
+
+    if (!razorpayOrderResult.success || !razorpayOrderResult.order) {
+        toast({ variant: 'destructive', title: 'Payment Error', description: razorpayOrderResult.error || 'Could not create payment order.' });
+        setIsLoading(false);
+        return;
+    }
+
+    const { order: razorpayOrder } = razorpayOrderResult;
+    
+    const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency,
+        name: "Garena Gears",
+        description: `Order for ${product.name}`,
+        order_id: razorpayOrder.id,
+        handler: async function (response: any) {
+            const formData = new FormData();
+            formData.append('razorpay_payment_id', response.razorpay_payment_id);
+            formData.append('razorpay_order_id', response.razorpay_order_id);
+            formData.append('razorpay_signature', response.razorpay_signature);
+            formData.append('productId', product._id);
+            formData.append('gamingId', user.gamingId);
+
+            setStep('processing');
+            const verificationResult = await verifyRazorpayPayment(formData);
+
+            if (verificationResult.success) {
+                toast({ title: 'Success', description: verificationResult.message });
+                // The step is already 'processing', the UI will show the right message
+            } else {
+                toast({ variant: 'destructive', title: 'Payment Failed', description: verificationResult.message });
+                handleClose();
+            }
+        },
+        prefill: {
+            name: user.gamingId,
+        },
+        theme: {
+            color: "#F97316"
+        }
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.on('payment.failed', function (response: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Payment Failed',
+            description: response.error.description || 'Something went wrong.'
+        });
+        setIsLoading(false);
+    });
+
+    rzp.open();
+    // Don't set loading to false here because the Razorpay modal is now open
   };
 
   const handleBuyWithRedeemCode = async () => {
@@ -122,44 +168,10 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
     }
     setIsLoading(false);
   }
-
-  const handleUtrSubmit = async () => {
-    if (!user) {
-        toast({ variant: 'destructive', title: 'Error', description: 'User not found.' });
-        return;
-    }
-    if (!utr) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Please enter the UTR.' });
-        return;
-    }
-    setIsLoading(true);
-    const result = await submitUtr(product, user.gamingId, utr, user);
-    if (result.success) {
-        setStep('processing');
-    } else {
-        toast({ variant: 'destructive', title: 'Error', description: result.message });
-    }
-    setIsLoading(false);
-  }
   
   const coinsToUse = user ? Math.min(user.coins, product.coinsApplicable) : 0;
   const finalPrice = product.price - coinsToUse;
 
-  const upiLink = (app: 'gpay' | 'paytm' | 'phonepe') => {
-    const base = {
-        gpay: 'upi://pay',
-        paytm: 'paytmmp://pay',
-        phonepe: 'phonepe://pay',
-    }[app];
-    const params = new URLSearchParams({
-        pa: upiId,
-        pn: 'Garena',
-        am: finalPrice.toString(),
-        cu: 'INR',
-        tn: `Order for ${product.name}`,
-    });
-    return `${base}?${params.toString()}`;
-  }
 
   const renderContent = () => {
     switch (step) {
@@ -235,9 +247,27 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
                    <Button onClick={handleBuyWithUpi} className="w-full font-sans" disabled={isLoading}>
                     {isLoading ? <Loader2 className="animate-spin" /> : `Pay ₹${finalPrice} via UPI`}
                     </Button>
-                    <Button onClick={handleBuyWithRedeemCode} className="w-full font-sans" variant="secondary" disabled={isLoading}>
-                    {isLoading ? <Loader2 className="animate-spin" /> : `Use Redeem Code`}
-                    </Button>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button className="w-full font-sans" variant="secondary" disabled={isLoading}>
+                                {isLoading ? <Loader2 className="animate-spin" /> : `Use Redeem Code`}
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                             <DialogHeader>
+                                <DialogTitle className="text-2xl font-headline">Use Redeem Code</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="redeem-code">Enter your Redeem Code</Label>
+                                    <Input id="redeem-code" placeholder="XXXX-XXXX-XXXX" value={redeemCode} onChange={e => setRedeemCode(e.target.value)} />
+                                </div>
+                                <Button onClick={handleRedeemSubmit} className="w-full" disabled={isLoading}>
+                                    {isLoading ? <Loader2 className="animate-spin" /> : `Submit Code & Buy`}
+                                </Button>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
                 </div>
                 <p className="text-xs text-muted-foreground text-center mt-2">
                     By continuing, you accept our{' '}
@@ -249,84 +279,6 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
             </div>
           </>
         );
-    case 'payment':
-        return (
-            <>
-                <DialogHeader>
-                    <DialogTitle className="text-2xl font-headline flex items-center gap-2"><ShieldCheck className="text-green-500" />Secure UPI Payment</DialogTitle>
-                </DialogHeader>
-                <div className="flex flex-col items-center space-y-4">
-                    <div className="p-4 bg-white rounded-lg border">
-                        <QrCode value={upiLink('gpay')} size={160} />
-                    </div>
-                    <div className="text-center">
-                        <p className="font-semibold font-sans">Scan to pay ₹{finalPrice}</p>
-                        <p className="text-sm text-muted-foreground">Expires in: {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}</p>
-                    </div>
-                    
-                    <div className="w-full border-t pt-4 space-y-3">
-                         <p className="text-center text-sm font-semibold flex items-center justify-center gap-2"><Smartphone />Or pay directly from your phone</p>
-                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                            <Button asChild variant="outline" className="flex items-center gap-2">
-                                <a href={upiLink('gpay')}>
-                                    <Image src="/img/gpay.png" alt="Google Pay" width={20} height={20} />
-                                    Google Pay
-                                </a>
-                            </Button>
-                            <Button asChild variant="outline" className="flex items-center gap-2">
-                                <a href={upiLink('paytm')}>
-                                    <Image src="/img/paytm.png" alt="Paytm" width={20} height={20} />
-                                    Paytm
-                                </a>
-                            </Button>
-                            <Button asChild variant="outline" className="flex items-center gap-2">
-                                <a href={upiLink('phonepe')}>
-                                    <Image src="/img/phonepay.png" alt="PhonePe" width={20} height={20} />
-                                    PhonePe
-                                </a>
-                            </Button>
-                         </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground font-semibold tracking-wider pt-2">Powered by UPI</p>
-                </div>
-            </>
-        )
-    case 'redeem':
-        return (
-            <>
-                <DialogHeader>
-                    <DialogTitle className="text-2xl font-headline">Use Redeem Code</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="redeem-code">Enter your Redeem Code</Label>
-                        <Input id="redeem-code" placeholder="XXXX-XXXX-XXXX" value={redeemCode} onChange={e => setRedeemCode(e.target.value)} />
-                    </div>
-                    <Button onClick={handleRedeemSubmit} className="w-full" disabled={isLoading}>
-                        {isLoading ? <Loader2 className="animate-spin" /> : `Submit Code & Buy`}
-                    </Button>
-                    <Button variant="link" onClick={() => setStep('details')}>Back</Button>
-                </div>
-            </>
-        )
-    case 'utr':
-        return (
-            <>
-                <DialogHeader>
-                    <DialogTitle className="text-2xl font-headline">Submit Transaction ID</DialogTitle>
-                </DialogHeader>
-                 <div className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="utr-id">Enter your UTR/UPI Transaction ID</Label>
-                        <Input id="utr-id" placeholder="12-digit transaction ID" value={utr} onChange={e => setUtr(e.target.value)} />
-                    </div>
-                    <Button onClick={handleUtrSubmit} className="w-full" disabled={isLoading}>
-                        {isLoading ? <Loader2 className="animate-spin" /> : 'Submit & Complete Order'}
-                    </Button>
-                     <Button variant="link" onClick={() => setStep('payment')}>Back to Payment</Button>
-                </div>
-            </>
-        )
     case 'processing':
         return (
             <div className="flex flex-col items-center justify-center text-center space-y-4 py-8">
@@ -343,6 +295,11 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
   };
 
   return (
+    <>
+    <Script
+        id="razorpay-checkout-js"
+        src="https://checkout.razorpay.com/v1/checkout.js"
+    />
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <button onClick={handleClose} className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
@@ -352,5 +309,6 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
         {renderContent()}
       </DialogContent>
     </Dialog>
+    </>
   );
 }

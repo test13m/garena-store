@@ -8,7 +8,9 @@ if (!MONGODB_URI) {
 }
 
 // Extend the Db type to include the client property for session management
-export type MongoDbWithClient = Db & { client: MongoClient };
+export interface MongoDbWithClient extends Db {
+  client: MongoClient;
+}
 
 let cachedClient: MongoClient | null = null;
 let cachedDb: MongoDbWithClient | null = null;

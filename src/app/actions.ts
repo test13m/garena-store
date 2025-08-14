@@ -7,12 +7,13 @@ import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { type User, type Order, type Product, type Withdrawal, type LegacyUser } from '@/lib/definitions';
-import { randomBytes } from 'crypto';
+import { randomBytes, createHmac } from 'crypto';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { unstable_noStore as noStore } from 'next/cache';
 import { sendRedeemCodeNotification } from '@/lib/email';
 import { ObjectId } from 'mongodb';
+import Razorpay from 'razorpay';
 
 
 const key = new TextEncoder().encode(process.env.SESSION_SECRET || 'your-fallback-secret-for-session');
@@ -346,7 +347,7 @@ export async function rewardAdCoins(): Promise<{ success: boolean; message: stri
     }
     try {
         const db = await connectToDatabase();
-        const result = await db.collection('users').updateOne(
+        const result = await db.collection<User>('users').updateOne(
             { gamingId },
             { $inc: { coins: 5 } }
         );
@@ -393,8 +394,8 @@ export async function transferCoins(
         throw new Error('Recipient not found.');
       }
 
-      await db.collection('users').updateOne({ gamingId: senderGamingId }, { $inc: { coins: -amount } }, { session });
-      await db.collection('users').updateOne({ gamingId: recipientGamingId }, { $inc: { coins: amount } }, { session });
+      await db.collection<User>('users').updateOne({ gamingId: senderGamingId }, { $inc: { coins: -amount } }, { session });
+      await db.collection<User>('users').updateOne({ gamingId: recipientGamingId }, { $inc: { coins: amount } }, { session });
       
       resultMessage = `Successfully transferred ${amount} coins to ${recipientGamingId}.`;
     });
@@ -445,7 +446,7 @@ export async function createRedeemCodeOrder(
   redeemCode: string,
   user: User
 ): Promise<{ success: boolean; message: string }> {
-    const validatedData = redeemCodeSchema.safeParse({ gamingId, productId: product._id, redeemCode });
+    const validatedData = redeemCodeSchema.safeParse({ gamingId, productId: product._id.toString(), redeemCode });
     if (!validatedData.success) {
         return { success: false, message: 'Invalid data provided.' };
     }
@@ -458,7 +459,7 @@ export async function createRedeemCodeOrder(
     const newOrder: Omit<Order, '_id'> = {
         userId: user._id.toString(),
         gamingId: validatedData.data.gamingId,
-        productId: product._id,
+        productId: product._id.toString(),
         productName: product.name,
         productPrice: product.price,
         productImageUrl: product.imageUrl,
@@ -475,7 +476,7 @@ export async function createRedeemCodeOrder(
         await db.collection<Order>('orders').insertOne(newOrder as Order);
 
         if (coinsUsed > 0) {
-            await db.collection('users').updateOne({ _id: new ObjectId(user._id) }, { $inc: { coins: -coinsUsed } });
+            await db.collection<User>('users').updateOne({ _id: new ObjectId(user._id) }, { $inc: { coins: -coinsUsed } });
         }
 
         await sendRedeemCodeNotification({
@@ -493,34 +494,77 @@ export async function createRedeemCodeOrder(
     }
 }
 
-const submitUtrSchema = z.object({
-    gamingId: z.string().min(1, 'Gaming ID is required'),
-    productId: z.string(),
-    utr: z.string().min(6, 'UTR must be at least 6 characters'),
+// --- Razorpay Actions ---
+const razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID || '',
+    key_secret: process.env.RAZORPAY_KEY_SECRET || '',
 });
 
-export async function submitUtr(product: Product, gamingId: string, utr: string, user: User): Promise<{ success: boolean; message: string }> {
-    const validatedData = submitUtrSchema.safeParse({ gamingId, productId: product._id, utr });
+export async function createRazorpayOrder(amount: number) {
+    noStore();
+    const options = {
+        amount: amount * 100, // amount in the smallest currency unit
+        currency: "INR",
+        receipt: `receipt_order_${new Date().getTime()}`
+    };
+    try {
+        const order = await razorpay.orders.create(options);
+        return { success: true, order };
+    } catch (error) {
+        console.error('Error creating Razorpay order:', error);
+        return { success: false, error: 'Failed to create payment order.' };
+    }
+}
+
+const verifyPaymentSchema = z.object({
+    razorpay_order_id: z.string(),
+    razorpay_payment_id: z.string(),
+    razorpay_signature: z.string(),
+    productId: z.string(),
+    gamingId: z.string(),
+});
+
+export async function verifyRazorpayPayment(formData: FormData) {
+    const validatedData = verifyPaymentSchema.safeParse(Object.fromEntries(formData));
+
     if (!validatedData.success) {
-        return { success: false, message: 'Invalid UTR data.' };
+        return { success: false, message: 'Invalid payment data.' };
     }
 
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, productId, gamingId } = validatedData.data;
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
+
+    const expectedSignature = createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
+        .update(body.toString())
+        .digest('hex');
+
+    if (expectedSignature !== razorpay_signature) {
+        return { success: false, message: 'Invalid payment signature.' };
+    }
+
+    // Payment is verified, now create the order in the database
     const db = await connectToDatabase();
-    
+    const product = await db.collection<Product>('products').findOne({ _id: new ObjectId(productId) });
+    const user = await db.collection<User>('users').findOne({ gamingId });
+
+    if (!product || !user) {
+        return { success: false, message: 'Product or user not found.' };
+    }
+
     const coinsUsed = Math.min(user.coins, product.coinsApplicable);
     const finalPrice = product.price - coinsUsed;
 
     const newOrder: Omit<Order, '_id'> = {
         userId: user._id.toString(),
-        gamingId: validatedData.data.gamingId,
-        productId: product._id,
+        gamingId,
+        productId: product._id.toString(),
         productName: product.name,
         productPrice: product.price,
         productImageUrl: product.imageUrl,
         paymentMethod: 'UPI',
         status: 'Processing',
-        utr: validatedData.data.utr,
-        referralCode: user.referredByCode, // Save the referrer's code
+        utr: razorpay_payment_id, // Storing payment ID in UTR field for consistency
+        referralCode: user.referredByCode,
         coinsUsed,
         finalPrice,
         createdAt: new Date(),
@@ -528,19 +572,20 @@ export async function submitUtr(product: Product, gamingId: string, utr: string,
 
     try {
         await db.collection<Order>('orders').insertOne(newOrder as Order);
-        
-        if (coinsUsed > 0) {
-            await db.collection('users').updateOne({ _id: new ObjectId(user._id) }, { $inc: { coins: -coinsUsed } });
-        }
 
+        if (coinsUsed > 0) {
+            await db.collection<User>('users').updateOne({ _id: user._id }, { $inc: { coins: -coinsUsed } });
+        }
+        
         revalidatePath('/');
         revalidatePath('/order');
-        return { success: true, message: 'UTR submitted successfully. Your order is now processing.' };
+        return { success: true, message: 'Payment successful, order is processing.' };
     } catch (error) {
-        console.error('Error submitting UTR:', error);
-        return { success: false, message: 'Failed to submit UTR.' };
+        console.error('Error creating order after payment verification:', error);
+        return { success: false, message: 'Failed to create order after payment.' };
     }
 }
+
 
 
 // --- Admin Actions ---
@@ -595,7 +640,7 @@ export async function updateOrderStatus(orderId: string, status: 'Completed' | '
         return { success: false };
     }
 
-    await db.collection('orders').updateOne({ _id: new ObjectId(orderId) }, { $set: { status } });
+    await db.collection<Order>('orders').updateOne({ _id: new ObjectId(orderId) }, { $set: { status } });
     
     // If order is completed and was referred, reward the referrer
     if (status === 'Completed' && order.referralCode) {
@@ -620,7 +665,7 @@ export async function deleteUser(userId: string): Promise<{success: boolean; mes
     }
     const { ObjectId } = await import('mongodb');
     const db = await connectToDatabase();
-    await db.collection('legacy_users').deleteOne({ _id: new ObjectId(userId) });
+    await db.collection<LegacyUser>('legacy_users').deleteOne({ _id: new ObjectId(userId) });
     revalidatePath('/admin/accounts');
     return { success: true, message: 'User deleted.' };
 }
@@ -808,7 +853,7 @@ export async function updateWithdrawalStatus(withdrawalId: string, status: 'Comp
     const { ObjectId } = await import('mongodb');
     const db = await connectToDatabase();
 
-    const result = await db.collection('withdrawals').updateOne(
+    const result = await db.collection<Withdrawal>('withdrawals').updateOne(
         { _id: new ObjectId(withdrawalId) },
         { $set: { status } }
     );
