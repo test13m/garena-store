@@ -36,6 +36,7 @@ export interface Product {
     isVanished: boolean;
     coinsApplicable: number;
     endDate?: Date;
+    displayOrder: number;
 }
 
 export interface Order {

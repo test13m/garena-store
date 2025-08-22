@@ -869,18 +869,18 @@ export async function updateWithdrawalStatus(withdrawalId: string, status: 'Comp
 
 // --- Product Management Actions ---
 const productsToSeed = [
-  { name: "100 Diamonds", price: 80, imageUrl: "/img/100.png", dataAiHint: 'diamond jewel', coinsApplicable: 50 },
-  { name: "310 Diamonds", price: 240, imageUrl: "/img/310.png", dataAiHint: 'diamond jewel', coinsApplicable: 150 },
-  { name: "520 Diamonds", price: 400, imageUrl: "/img/520.png", dataAiHint: 'diamond jewel', coinsApplicable: 200 },
-  { name: "1060 Diamonds", price: 800, imageUrl: "/img/1060.png", dataAiHint: 'diamond jewel', coinsApplicable: 300 },
-  { name: "2180 Diamonds", price: 1600, imageUrl: "/img/2180.png", dataAiHint: 'diamond jewel', coinsApplicable: 900 },
-  { name: "5600 Diamonds", price: 4000, imageUrl: "/img/5600.png", dataAiHint: 'diamond jewel', coinsApplicable: 2000 },
-  { name: "Weekly Membership", price: 159, imageUrl: "/img/weekly.png", dataAiHint: 'membership card', coinsApplicable: 59 },
-  { name: "Monthly Membership", price: 800, imageUrl: "/img/monthly.png", dataAiHint: 'membership card', coinsApplicable: 300 },
-  { name: "Itachi Uchiha Bundle", price: 5000, imageUrl: "/img/itachi.png", dataAiHint: 'anime character', coinsApplicable: 4000 },
-  { name: "MP40 - Predatory Cobra", price: 5000, imageUrl: "/img/mp40.png", dataAiHint: 'cobra snake', coinsApplicable: 2000 },
-  { name: "AK47 - Blue Flame Draco", price: 5000, imageUrl: "/img/ak47.png", dataAiHint: 'blue dragon', coinsApplicable: 2000 },
-  { name: "LOL Emote", price: 3000, imageUrl: "/img/lol.png", dataAiHint: 'laughing face', coinsApplicable: 1000 },
+  { name: "100 Diamonds", price: 80, imageUrl: "/img/100.png", dataAiHint: 'diamond jewel', coinsApplicable: 50, displayOrder: 1 },
+  { name: "310 Diamonds", price: 240, imageUrl: "/img/310.png", dataAiHint: 'diamond jewel', coinsApplicable: 150, displayOrder: 2 },
+  { name: "520 Diamonds", price: 400, imageUrl: "/img/520.png", dataAiHint: 'diamond jewel', coinsApplicable: 200, displayOrder: 3 },
+  { name: "1060 Diamonds", price: 800, imageUrl: "/img/1060.png", dataAiHint: 'diamond jewel', coinsApplicable: 300, displayOrder: 4 },
+  { name: "2180 Diamonds", price: 1600, imageUrl: "/img/2180.png", dataAiHint: 'diamond jewel', coinsApplicable: 900, displayOrder: 5 },
+  { name: "5600 Diamonds", price: 4000, imageUrl: "/img/5600.png", dataAiHint: 'diamond jewel', coinsApplicable: 2000, displayOrder: 6 },
+  { name: "Weekly Membership", price: 159, imageUrl: "/img/weekly.png", dataAiHint: 'membership card', coinsApplicable: 59, displayOrder: 7 },
+  { name: "Monthly Membership", price: 800, imageUrl: "/img/monthly.png", dataAiHint: 'membership card', coinsApplicable: 300, displayOrder: 8 },
+  { name: "Itachi Uchiha Bundle", price: 5000, imageUrl: "/img/itachi.png", dataAiHint: 'anime character', coinsApplicable: 4000, displayOrder: 9 },
+  { name: "MP40 - Predatory Cobra", price: 5000, imageUrl: "/img/mp40.png", dataAiHint: 'cobra snake', coinsApplicable: 2000, displayOrder: 10 },
+  { name: "AK47 - Blue Flame Draco", price: 5000, imageUrl: "/img/ak47.png", dataAiHint: 'blue dragon', coinsApplicable: 2000, displayOrder: 11 },
+  { name: "LOL Emote", price: 3000, imageUrl: "/img/lol.png", dataAiHint: 'laughing face', coinsApplicable: 1000, displayOrder: 12 },
   { 
     name: "MP40 - UCHIHA'S LEGACY", 
     price: 4000, 
@@ -888,6 +888,7 @@ const productsToSeed = [
     dataAiHint: 'anime weapon', 
     coinsApplicable: 2500,
     endDate: new Date('2024-08-14T00:00:00+05:30'), // Aug 14, 12 AM IST
+    displayOrder: 13
   },
 ];
 
@@ -926,7 +927,7 @@ export async function getProducts(): Promise<Product[]> {
     const db = await connectToDatabase();
     const productsFromDb = await db.collection<Product>('products')
       .find({ isVanished: false })
-      .sort({ price: 1 })
+      .sort({ displayOrder: 1 })
       .toArray();
 
     return JSON.parse(JSON.stringify(productsFromDb));
@@ -939,6 +940,8 @@ const productUpdateSchema = z.object({
     isAvailable: z.enum(['on', 'off']).optional(),
     coinsApplicable: z.coerce.number().int().min(0, 'Applicable coins cannot be negative.'),
     endDate: z.string().optional(),
+    imageUrl: z.string().url('Must be a valid URL.'),
+    displayOrder: z.coerce.number().int().min(1, 'Display order must be a positive number.')
 });
 
 export async function updateProduct(productId: string, formData: FormData): Promise<{ success: boolean; message: string }> {
@@ -954,20 +957,61 @@ export async function updateProduct(productId: string, formData: FormData): Prom
         return { success: false, message: validatedFields.error.errors.map(e => e.message).join(', ') };
     }
 
-    const { name, price, quantity, coinsApplicable } = validatedFields.data;
+    const { name, price, quantity, coinsApplicable, imageUrl, displayOrder } = validatedFields.data;
     const isAvailable = rawFormData.isAvailable === 'on';
     const endDate = validatedFields.data.endDate ? new Date(validatedFields.data.endDate) : undefined;
 
 
     const db = await connectToDatabase();
+
+    const existingProductWithOrder = await db.collection<Product>('products').findOne({
+        displayOrder,
+        _id: { $ne: new ObjectId(productId) }
+    });
+
+    if (existingProductWithOrder) {
+        return { success: false, message: `Display order ${displayOrder} is already in use by another product.` };
+    }
+
+
     await db.collection<Product>('products').updateOne(
         { _id: new ObjectId(productId) },
-        { $set: { name, price, quantity, isAvailable, coinsApplicable, endDate: endDate } }
+        { $set: { name, price, quantity, isAvailable, coinsApplicable, endDate: endDate, imageUrl, displayOrder } }
     );
     
     revalidatePath('/');
     revalidatePath('/admin/price-management');
     return { success: true, message: 'Product updated.' };
+}
+
+export async function addProduct(): Promise<{ success: boolean, message: string }> {
+    const isAdmin = await isAdminAuthenticated();
+    if (!isAdmin) {
+        return { success: false, message: 'Unauthorized' };
+    }
+    
+    const db = await connectToDatabase();
+
+    // Find the highest current display order
+    const lastProduct = await db.collection<Product>('products').find().sort({ displayOrder: -1 }).limit(1).toArray();
+    const newDisplayOrder = lastProduct.length > 0 ? lastProduct[0].displayOrder + 1 : 1;
+
+    const newProduct: Omit<Product, '_id'> = {
+        name: "New Product",
+        price: 99,
+        quantity: 1,
+        imageUrl: "https://placehold.co/600x400.png",
+        dataAiHint: "placeholder image",
+        isAvailable: false,
+        isVanished: false,
+        coinsApplicable: 0,
+        displayOrder: newDisplayOrder
+    };
+
+    await db.collection<Product>('products').insertOne(newProduct as Product);
+    
+    revalidatePath('/admin/price-management');
+    return { success: true, message: 'New product added.' };
 }
 
 export async function vanishProduct(productId: string): Promise<{ success: boolean; message: string }> {

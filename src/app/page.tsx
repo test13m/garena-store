@@ -40,7 +40,7 @@ export default async function Home() {
             {products.map((product) => (
               <ProductCard
                 key={product._id.toString()}
-                product={product}
+                product={{...product, _id: product._id.toString()}}
                 user={user}
               />
             ))}

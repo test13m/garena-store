@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Trash2, Coins } from 'lucide-react';
+import { Loader2, Trash2, Coins, PlusCircle, ArrowUp, ArrowDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { updateProduct, vanishProduct } from '@/app/actions';
+import { updateProduct, vanishProduct, addProduct } from '@/app/actions';
 import type { Product } from '@/lib/definitions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
@@ -37,7 +37,6 @@ export default function PriceManagementList({ initialProducts }: PriceManagement
       const result = await updateProduct(productId, formData);
       if (result.success) {
         toast({ title: 'Success', description: 'Product updated successfully.' });
-        // No need to manually update state as revalidatePath will trigger a refresh
       } else {
         toast({ variant: 'destructive', title: 'Error', description: result.message });
       }
@@ -55,14 +54,31 @@ export default function PriceManagementList({ initialProducts }: PriceManagement
       }
     });
   };
+  
+  const handleAddProduct = () => {
+    startTransition(async () => {
+        const result = await addProduct();
+        if (result.success) {
+            toast({ title: 'Success', description: 'New product added. Please refresh to see it.' });
+        } else {
+            toast({ variant: 'destructive', title: 'Error', description: result.message });
+        }
+    });
+  };
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Price & Product Management</CardTitle>
-        <CardDescription>
-          Update product details, availability, and coin discounts. Changes will be reflected on the homepage immediately.
-        </CardDescription>
+      <CardHeader className="flex flex-row justify-between items-start">
+        <div>
+            <CardTitle>Price & Product Management</CardTitle>
+            <CardDescription>
+              Update product details, availability, and coin discounts. Changes will be reflected on the homepage immediately.
+            </CardDescription>
+        </div>
+         <Button onClick={handleAddProduct} disabled={isPending}>
+            <PlusCircle className="mr-2 h-4 w-4"/>
+            Add New Product
+        </Button>
       </CardHeader>
       <CardContent className="space-y-6">
         {products.map((product) => (
@@ -75,6 +91,15 @@ export default function PriceManagementList({ initialProducts }: PriceManagement
                     id={`name-${product._id}`}
                     name="name"
                     defaultValue={product.name}
+                  />
+                </div>
+                 <div className="space-y-2">
+                  <Label htmlFor={`displayOrder-${product._id}`}>Display Order</Label>
+                  <Input
+                    id={`displayOrder-${product._id}`}
+                    name="displayOrder"
+                    type="number"
+                    defaultValue={product.displayOrder}
                   />
                 </div>
                 <div className="space-y-2">
@@ -107,7 +132,15 @@ export default function PriceManagementList({ initialProducts }: PriceManagement
                     defaultValue={product.quantity}
                   />
                 </div>
-                 <div className="space-y-2 lg:col-span-2">
+                <div className="space-y-2 lg:col-span-2">
+                  <Label htmlFor={`imageUrl-${product._id}`}>Image URL</Label>
+                  <Input
+                    id={`imageUrl-${product._id}`}
+                    name="imageUrl"
+                    defaultValue={product.imageUrl}
+                  />
+                </div>
+                 <div className="space-y-2">
                   <Label htmlFor={`endDate-${product._id}`}>End Date (Optional)</Label>
                   <Input
                     id={`endDate-${product._id}`}
@@ -117,7 +150,7 @@ export default function PriceManagementList({ initialProducts }: PriceManagement
                   />
                 </div>
 
-                <div className="flex items-end justify-between md:col-start-2 lg:col-start-auto">
+                <div className="flex items-end justify-between">
                     <div className="space-y-2">
                         <Label htmlFor={`isAvailable-${product._id}`}>Available</Label>
                         <div className="flex items-center h-10">
