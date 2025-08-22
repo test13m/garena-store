@@ -50,7 +50,7 @@ export default function GamingIdModal({ isOpen, onOpenChange }: GamingIdModalPro
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-headline">Welcome to Garena Gears</DialogTitle>
+          <DialogTitle className="text-2xl font-headline">Welcome to Garena Store</DialogTitle>
           <DialogDescription>
             Please enter your Free Fire Gaming ID to get started and receive your welcome bonus!
           </DialogDescription>
