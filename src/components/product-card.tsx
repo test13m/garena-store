@@ -137,7 +137,7 @@ export default function ProductCard({ product, user }: ProductCardProps) {
         <CardFooter className="p-4 pt-0">
           {product.isAvailable ? (
             <Button 
-              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-base transition-transform duration-200 hover:scale-105 font-sans"
+              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-base transition-transform duration-200 hover:scale-105 font-sans relative overflow-hidden animate-glowing-ray"
               onClick={handleBuyClick}
             >
               Buy {product.price && <span className="line-through ml-2 text-accent-foreground/80">₹{product.price}</span>} <span className="ml-1">₹{finalPrice}</span>

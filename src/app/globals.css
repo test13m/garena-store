@@ -102,4 +102,26 @@
       transform: scale(0.8);
     }
   }
+
+  .animate-glowing-ray::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -150%;
+    width: 75%;
+    height: 100%;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.4) 50%, rgba(255, 255, 255, 0) 100%);
+    transform: skewX(-25deg);
+    animation: glowing-ray 3s linear infinite;
+    animation-delay: 1.5s;
+  }
+
+  @keyframes glowing-ray {
+    0% {
+      left: -150%;
+    }
+    100% {
+      left: 150%;
+    }
+  }
 }
