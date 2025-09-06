@@ -42,6 +42,8 @@ export interface Product {
     endDate?: Date;
     displayOrder?: number;
     category?: string;
+    onlyUpi?: boolean;
+    oneTimeBuy?: boolean;
 }
 
 export interface Order {

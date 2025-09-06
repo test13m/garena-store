@@ -1009,6 +1009,8 @@ const productUpdateSchema = z.object({
   price: z.coerce.number().positive('Price must be a positive number.'),
   quantity: z.coerce.number().int().positive('Quantity must be a positive integer.'),
   isAvailable: z.enum(['on', 'off']).optional(),
+  onlyUpi: z.enum(['on', 'off']).optional(),
+  oneTimeBuy: z.enum(['on', 'off']).optional(),
   endDate: z.string().optional(),
   imageUrl: z.string().url('Must be a valid URL.'),
   displayOrder: z.coerce.number().int().min(1, 'Display order must be a positive number.'),
@@ -1056,6 +1058,8 @@ export async function updateProduct(productId: string, formData: FormData): Prom
 
     const data = validatedFields.data;
     const isAvailable = rawFormData.isAvailable === 'on';
+    const onlyUpi = rawFormData.onlyUpi === 'on';
+    const oneTimeBuy = rawFormData.oneTimeBuy === 'on';
     const endDate = data.endDate ? new Date(data.endDate) : undefined;
     const isCoinProduct = data.isCoinProduct === 'true';
     
@@ -1064,6 +1068,8 @@ export async function updateProduct(productId: string, formData: FormData): Prom
         price: data.price,
         quantity: data.quantity,
         isAvailable,
+        onlyUpi,
+        oneTimeBuy,
         endDate,
         imageUrl: data.imageUrl,
         displayOrder: data.displayOrder,
@@ -1122,7 +1128,9 @@ export async function addProduct(isCoinProduct: boolean): Promise<{ success: boo
             coinsApplicable: 0,
             isCoinProduct: true,
             displayOrder: newDisplayOrder,
-            category: "Coins"
+            category: "Coins",
+            onlyUpi: false,
+            oneTimeBuy: false,
         };
     } else {
         newProduct = {
@@ -1135,7 +1143,9 @@ export async function addProduct(isCoinProduct: boolean): Promise<{ success: boo
             isVanished: false,
             coinsApplicable: 0,
             displayOrder: newDisplayOrder,
-            category: "Uncategorized"
+            category: "Uncategorized",
+            onlyUpi: false,
+            oneTimeBuy: false,
         };
     }
 

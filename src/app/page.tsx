@@ -1,8 +1,8 @@
 import ImageSlider from '@/components/image-slider';
 import FaqChatbot from '@/components/faq-chatbot';
-import { getProducts, getUserData } from './actions';
+import { getProducts, getUserData, getOrdersForUser } from './actions';
 import { type Metadata } from 'next';
-import { type Product, type User } from '@/lib/definitions';
+import { type Product, type User, type Order } from '@/lib/definitions';
 import CoinSystem from '@/components/coin-system';
 import { ObjectId } from 'mongodb';
 import ProductList from '@/components/product-list';
@@ -26,6 +26,7 @@ export const metadata: Metadata = {
 export default async function Home() {
   const products: (Product & { _id: ObjectId | string })[] = await getProducts();
   const user: User | null = await getUserData();
+  const orders: Order[] = user ? await getOrdersForUser() : [];
 
   const productsWithStringId = products.map(p => ({...p, _id: p._id.toString()}));
 
@@ -33,7 +34,7 @@ export default async function Home() {
     <div className="flex flex-col">
       <ImageSlider />
       <CoinSystem user={user} />
-      <ProductList initialProducts={productsWithStringId} user={user} />
+      <ProductList initialProducts={productsWithStringId} user={user} orders={orders}/>
       <FaqChatbot />
     </div>
   );

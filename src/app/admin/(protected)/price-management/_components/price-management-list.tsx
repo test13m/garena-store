@@ -195,15 +195,23 @@ export default function PriceManagementList({ initialProducts }: PriceManagement
                   />
                 </div>
 
-                <div className="flex items-end justify-between">
+                <div className="flex items-end justify-between space-x-4">
                     <div className="space-y-2">
                         <Label htmlFor={`isAvailable-${product._id}`}>Available</Label>
                         <div className="flex items-center h-10">
-                            <Switch
-                            id={`isAvailable-${product._id}`}
-                            name="isAvailable"
-                            defaultChecked={product.isAvailable}
-                            />
+                            <Switch id={`isAvailable-${product._id}`} name="isAvailable" defaultChecked={product.isAvailable} />
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor={`onlyUpi-${product._id}`}>Only UPI</Label>
+                        <div className="flex items-center h-10">
+                            <Switch id={`onlyUpi-${product._id}`} name="onlyUpi" defaultChecked={product.onlyUpi} />
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor={`oneTimeBuy-${product._id}`}>1 Time Buy</Label>
+                        <div className="flex items-center h-10">
+                            <Switch id={`oneTimeBuy-${product._id}`} name="oneTimeBuy" defaultChecked={product.oneTimeBuy} />
                         </div>
                     </div>
                 </div>

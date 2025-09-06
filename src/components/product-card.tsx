@@ -13,8 +13,8 @@ import {
 } from '@/components/ui/card';
 import { useState, useEffect } from 'react';
 import PurchaseModal from './purchase-modal';
-import type { Product, User } from '@/lib/definitions';
-import { Ban, Coins, Timer } from 'lucide-react';
+import type { Product, User, Order } from '@/lib/definitions';
+import { Ban, Coins, Timer, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { type ObjectId } from 'mongodb';
@@ -23,6 +23,7 @@ import { type ObjectId } from 'mongodb';
 interface ProductCardProps {
   product: Product & { _id: string | ObjectId }; // Allow string for serialized product
   user: User | null;
+  hasPurchased: boolean;
 }
 
 const CountdownTimer = ({ endDate }: { endDate: Date }) => {
@@ -89,7 +90,7 @@ const CountdownTimer = ({ endDate }: { endDate: Date }) => {
 };
 
 
-export default function ProductCard({ product, user }: ProductCardProps) {
+export default function ProductCard({ product, user, hasPurchased }: ProductCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { toast } = useToast();
 
@@ -135,21 +136,22 @@ export default function ProductCard({ product, user }: ProductCardProps) {
           )}
         </CardContent>
         <CardFooter className="p-4 pt-0">
-          {product.isAvailable ? (
+          {!product.isAvailable ? (
+            <Button className="w-full font-bold text-base" disabled variant="secondary">
+              <Ban className="mr-2 h-4 w-4" />
+              Item Unavailable
+            </Button>
+          ) : hasPurchased && product.oneTimeBuy ? (
+            <Button className="w-full font-bold text-base" disabled variant="secondary">
+              <CheckCircle2 className="mr-2 h-4 w-4" />
+              Already Purchased
+            </Button>
+          ) : (
             <Button 
               className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-base transition-transform duration-200 hover:scale-105 font-sans relative overflow-hidden animate-glowing-ray"
               onClick={handleBuyClick}
             >
               Buy {product.price && <span className="line-through ml-2 text-accent-foreground/80">₹{product.price}</span>} <span className="ml-1">₹{finalPrice}</span>
-            </Button>
-          ) : (
-            <Button 
-              className="w-full font-bold text-base"
-              disabled
-              variant="secondary"
-            >
-              <Ban className="mr-2 h-4 w-4" />
-              Item Unavailable
             </Button>
           )}
         </CardFooter>

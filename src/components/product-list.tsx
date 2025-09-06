@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from 'react';
 import ProductCard from '@/components/product-card';
-import type { Product, User } from '@/lib/definitions';
+import type { Product, User, Order } from '@/lib/definitions';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search } from 'lucide-react';
@@ -13,9 +13,10 @@ import { type ObjectId } from 'mongodb';
 interface ProductListProps {
     initialProducts: (Product & { _id: string | ObjectId })[];
     user: User | null;
+    orders: Order[];
 }
 
-export default function ProductList({ initialProducts, user }: ProductListProps) {
+export default function ProductList({ initialProducts, user, orders }: ProductListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
@@ -93,13 +94,20 @@ export default function ProductList({ initialProducts, user }: ProductListProps)
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
-          {filteredAndSortedProducts.map((product) => (
-            <ProductCard
-              key={product._id.toString()}
-              product={{...product, _id: product._id.toString()}}
-              user={user}
-            />
-          ))}
+          {filteredAndSortedProducts.map((product) => {
+             const hasPurchased = !!user && orders.some(order => 
+                order.productId === product._id.toString() && 
+                (order.status === 'Completed' || order.status === 'Processing')
+            );
+            return (
+                <ProductCard
+                key={product._id.toString()}
+                product={{...product, _id: product._id.toString()}}
+                user={user}
+                hasPurchased={hasPurchased}
+                />
+            )
+          })}
         </div>
       </div>
     </section>

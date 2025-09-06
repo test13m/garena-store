@@ -57,10 +57,14 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
     setTimeout(onClose, 300); // Allow for closing animation
   }, [onClose]);
 
-  const goToOrderPage = () => {
-    handleClose();
-    router.push('/order');
-  };
+  useEffect(() => {
+    // If the modal is open, and a user gets passed in (e.g. after registration), move to details
+    if (isOpen && initialUser && step === 'register') {
+      setUser(initialUser);
+      setGamingId(initialUser.gamingId);
+      setStep('details');
+    }
+  }, [initialUser, isOpen, step]);
 
   const handleRegister = async () => {
     if (!gamingId) {
@@ -260,27 +264,29 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
                    <Button onClick={handleBuyWithUpi} className="w-full font-sans" disabled={isLoading}>
                     {isLoading ? <Loader2 className="animate-spin" /> : `Pay ₹${finalPrice} via UPI`}
                     </Button>
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button className="w-full font-sans" variant="secondary" disabled={isLoading}>
-                                {isLoading ? <Loader2 className="animate-spin" /> : `Use Redeem Code`}
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                             <DialogHeader>
-                                <DialogTitle className="text-2xl font-headline">Use Redeem Code</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="redeem-code">Enter your Redeem Code</Label>
-                                    <Input id="redeem-code" placeholder="XXXX-XXXX-XXXX" value={redeemCode} onChange={e => setRedeemCode(e.target.value)} />
-                                </div>
-                                <Button onClick={handleRedeemSubmit} className="w-full" disabled={isLoading}>
-                                    {isLoading ? <Loader2 className="animate-spin" /> : `Submit Code & Buy`}
+                    {!product.onlyUpi && (
+                         <Dialog>
+                            <DialogTrigger asChild>
+                                <Button className="w-full font-sans" variant="secondary" disabled={isLoading}>
+                                    {isLoading ? <Loader2 className="animate-spin" /> : `Use Redeem Code`}
                                 </Button>
-                            </div>
-                        </DialogContent>
-                    </Dialog>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle className="text-2xl font-headline">Use Redeem Code</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="redeem-code">Enter your Redeem Code</Label>
+                                        <Input id="redeem-code" placeholder="XXXX-XXXX-XXXX" value={redeemCode} onChange={e => setRedeemCode(e.target.value)} />
+                                    </div>
+                                    <Button onClick={handleRedeemSubmit} className="w-full" disabled={isLoading}>
+                                        {isLoading ? <Loader2 className="animate-spin" /> : `Submit Code & Buy`}
+                                    </Button>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
+                    )}
                 </div>
                 <p className="text-xs text-muted-foreground text-center mt-2">
                     By continuing, you accept our{' '}
@@ -299,7 +305,7 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
                 <h2 className="text-2xl font-headline">Order Under Processing</h2>
                 <p className="text-muted-foreground">Your order has been received and is now being processed. This usually takes just a few moments.</p>
                 <p>You can track the status of your order on the "Order" page.</p>
-                <Button onClick={goToOrderPage}>Go to Orders Page</Button>
+                <Button onClick={handleClose}>Go to Orders Page</Button>
             </div>
         )
       default:
