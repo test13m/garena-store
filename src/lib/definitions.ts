@@ -94,4 +94,5 @@ export interface Notification {
     imageUrl?: string;
     isRead: boolean;
     createdAt: Date;
+    isPopup?: boolean;
 }

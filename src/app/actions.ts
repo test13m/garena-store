@@ -7,6 +7,7 @@
 
 
 
+
 'use server';
 
 import { customerFAQChatbot, type CustomerFAQChatbotInput } from '@/ai/flows/customer-faq-chatbot';
@@ -1409,6 +1410,7 @@ const notificationSchema = z.object({
     gamingId: z.string().min(1, 'Gaming ID is required.'),
     message: z.string().min(1, 'Message is required.'),
     imageUrl: z.string().url().optional().or(z.literal('')),
+    isPopup: z.enum(['on', 'off']).optional(),
 });
 
 export async function sendNotification(formData: FormData): Promise<{ success: boolean, message: string }> {
@@ -1417,13 +1419,15 @@ export async function sendNotification(formData: FormData): Promise<{ success: b
         return { success: false, message: 'Unauthorized' };
     }
 
-    const validatedFields = notificationSchema.safeParse(Object.fromEntries(formData));
+    const rawFormData = Object.fromEntries(formData.entries());
+    const validatedFields = notificationSchema.safeParse(rawFormData);
 
     if (!validatedFields.success) {
         return { success: false, message: 'Invalid data.' };
     }
 
     const { gamingId, message, imageUrl } = validatedFields.data;
+    const isPopup = rawFormData.isPopup === 'on';
 
     const db = await connectToDatabase();
     const user = await db.collection<User>('users').findOne({ gamingId });
@@ -1438,6 +1442,7 @@ export async function sendNotification(formData: FormData): Promise<{ success: b
         imageUrl: imageUrl || undefined,
         isRead: false,
         createdAt: new Date(),
+        isPopup: isPopup,
     };
 
     await db.collection<Notification>('notifications').insertOne(newNotification as Notification);
@@ -1449,6 +1454,7 @@ export async function sendNotification(formData: FormData): Promise<{ success: b
 const sendToAllSchema = z.object({
   message: z.string().min(1, 'Message is required.'),
   imageUrl: z.string().url().optional().or(z.literal('')),
+  isPopup: z.enum(['on', 'off']).optional(),
 });
 
 export async function sendNotificationToAll(formData: FormData): Promise<{ success: boolean; message: string }> {
@@ -1457,11 +1463,13 @@ export async function sendNotificationToAll(formData: FormData): Promise<{ succe
         return { success: false, message: 'Unauthorized' };
     }
     
-    const validatedFields = sendToAllSchema.safeParse(Object.fromEntries(formData));
+    const rawFormData = Object.fromEntries(formData.entries());
+    const validatedFields = sendToAllSchema.safeParse(rawFormData);
     if (!validatedFields.success) {
         return { success: false, message: 'Invalid data.' };
     }
     const { message, imageUrl } = validatedFields.data;
+    const isPopup = rawFormData.isPopup === 'on';
 
     const db = await connectToDatabase();
     // Find all users who are not banned or hidden
@@ -1477,6 +1485,7 @@ export async function sendNotificationToAll(formData: FormData): Promise<{ succe
         imageUrl: imageUrl || undefined,
         isRead: false,
         createdAt: new Date(),
+        isPopup: isPopup,
     }));
 
     await db.collection<Notification>('notifications').insertMany(notifications as Notification[]);
@@ -1500,6 +1509,23 @@ export async function getNotificationsForUser(): Promise<Notification[]> {
     
     return JSON.parse(JSON.stringify(notifications));
 }
+
+export async function markNotificationAsRead(notificationId: string): Promise<{ success: boolean }> {
+    const gamingId = cookies().get('gaming_id')?.value;
+    if (!gamingId) {
+        return { success: false };
+    }
+
+    const db = await connectToDatabase();
+    await db.collection<Notification>('notifications').updateOne(
+        { _id: new ObjectId(notificationId), gamingId },
+        { $set: { isRead: true } }
+    );
+    
+    revalidatePath('/'); // Revalidate to update unread count
+    return { success: true };
+}
+
 
 export async function markNotificationsAsRead(): Promise<{ success: boolean }> {
     const gamingId = cookies().get('gaming_id')?.value;
