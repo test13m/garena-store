@@ -1,6 +1,7 @@
 
 
 
+
 'use server';
 
 import { customerFAQChatbot, type CustomerFAQChatbotInput } from '@/ai/flows/customer-faq-chatbot';
@@ -281,7 +282,7 @@ export async function generateReferralLink(): Promise<{ success: boolean; link?:
 
 
 // --- User Actions ---
-export async function registerGamingId(gamingId: string): Promise<{ success: boolean; message: string; user?: User }> {
+export async function registerGamingId(gamingId: string): Promise<{ success: boolean; message: string; user?: User, isBanned?: boolean, banMessage?: string }> {
   noStore();
   if (!gamingId || gamingId.trim().length < 3) {
     return { success: false, message: 'Invalid Gaming ID provided.' };
@@ -292,7 +293,7 @@ export async function registerGamingId(gamingId: string): Promise<{ success: boo
 
     const bannedUser = await db.collection<User>('users').findOne({ gamingId, isBanned: true });
     if (bannedUser) {
-        return { success: false, message: 'This Gaming ID has been banned.' };
+        return { success: false, message: 'This Gaming ID has been banned.', isBanned: true, banMessage: bannedUser.banMessage };
     }
 
 
@@ -784,7 +785,7 @@ export async function updateOrderStatus(orderId: string, status: 'Completed' | '
                        { session }
                    );
                 }
-            } else if (status === 'Failed' && order.paymentMethod === 'UPI') {
+            } else if (status === 'Failed' && order.paymentMethod !== 'Redeem Code' && !order.isCoinProduct && (order.coinsUsed || 0) > 0) {
                 // If a UPI payment order fails, revert the coin deduction.
                 // This does not apply to redeem code orders as coins aren't deducted until completion.
                 await db.collection<User>('users').updateOne(
@@ -1282,7 +1283,7 @@ export async function getUsersForAdmin(page: number, sort: string, search: strin
     return { users, hasMore };
 }
 
-export async function banUser(userId: string): Promise<{ success: boolean; message: string }> {
+export async function banUser(userId: string, banMessage: string): Promise<{ success: boolean; message: string }> {
     const isAdmin = await isAdminAuthenticated();
     if (!isAdmin) {
         return { success: false, message: 'Unauthorized' };
@@ -1291,7 +1292,7 @@ export async function banUser(userId: string): Promise<{ success: boolean; messa
     
     const result = await db.collection<User>('users').updateOne(
         { _id: new ObjectId(userId) },
-        { $set: { isBanned: true } }
+        { $set: { isBanned: true, banMessage: banMessage } }
     );
     
     if (result.modifiedCount === 0) {
@@ -1300,4 +1301,24 @@ export async function banUser(userId: string): Promise<{ success: boolean; messa
 
     revalidatePath('/admin/users');
     return { success: true, message: 'User has been banned.' };
+}
+
+export async function unbanUser(userId: string): Promise<{ success: boolean; message: string }> {
+    const isAdmin = await isAdminAuthenticated();
+    if (!isAdmin) {
+        return { success: false, message: 'Unauthorized' };
+    }
+    const db = await connectToDatabase();
+    
+    const result = await db.collection<User>('users').updateOne(
+        { _id: new ObjectId(userId) },
+        { $set: { isBanned: false }, $unset: { banMessage: "" } }
+    );
+    
+    if (result.modifiedCount === 0) {
+        return { success: false, message: 'User not found or not banned.' };
+    }
+
+    revalidatePath('/admin/users');
+    return { success: true, message: 'User has been unbanned.' };
 }

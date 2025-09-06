@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { logoutAdmin } from '@/app/actions';
-import { Home, ListChecks, ListX, Users, LogOut, Banknote, Tag, ArchiveRestore, Coins, ShieldBan } from 'lucide-react';
+import { Home, ListChecks, ListX, Users, LogOut, Banknote, Tag, ArchiveRestore, Coins, ShieldBan, Box } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
@@ -12,6 +12,7 @@ const navItems = [
   { href: '/admin', label: 'Pending Orders', icon: Home },
   { href: '/admin/success', label: 'Successful Orders', icon: ListChecks },
   { href: '/admin/failed', label: 'Failed Orders', icon: ListX },
+  { href: '/admin/all-orders', label: 'All Orders', icon: Box },
   { href: '/admin/accounts', label: 'Registered Accounts', icon: Users },
   { href: '/admin/users', label: 'User Management', icon: ShieldBan },
   { href: '/admin/withdrawals', label: 'Withdrawals', icon: Banknote },

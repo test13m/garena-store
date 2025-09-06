@@ -25,6 +25,7 @@ export interface User {
     giftPassword?: string; // Hashed password for securing coin transfers
     canSetGiftPassword?: boolean; // Flag to check if user can set/reset gift password
     isBanned?: boolean;
+    banMessage?: string; // A message to show the user when they are banned
 }
 
 
