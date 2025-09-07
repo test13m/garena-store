@@ -40,7 +40,10 @@ export default function GamingIdModal({ isOpen, onOpenChange }: GamingIdModalPro
         description: result.message,
       });
       onOpenChange(false);
-      router.refresh(); 
+      // We use window.location.reload() to force a full page refresh.
+      // This ensures all components, including the root layout, re-fetch data 
+      // and correctly trigger the notification permission prompt for the new user.
+      window.location.reload(); 
     } else if (result.isBanned) {
       setBannedInfo({ message: result.banMessage || 'Your account has been suspended.' });
     } else {
