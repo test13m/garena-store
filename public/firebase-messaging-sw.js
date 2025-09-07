@@ -1,51 +1,77 @@
-// Give the service worker access to Firebase Messaging.
-// Note that you can only use Firebase Messaging here, other Firebase libraries
-// are not available in the service worker.
-importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
+// DO NOT CHANGE: This file must be in the public folder.
+// Otherwise, the service worker will not be able to register.
 
-// Initialize the Firebase app in the service worker by passing in
-// your app's Firebase config object.
-// https://firebase.google.com/docs/web/setup#config-object
+// Give the service worker access to Firebase Messaging.
+importScripts('https://www.gstatic.com/firebasejs/9.2.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.2.0/firebase-messaging-compat.js');
+
+
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  projectId: "garena-gears",
-  appId: "1:93335858315:web:9ef6be42c3b81a236ab88e",
-  storageBucket: "garena-gears.firebasestorage.app",
   apiKey: "AIzaSyAowX6z6IDuosoxlfclYkgof5HXC27UEmA",
   authDomain: "garena-gears.firebaseapp.com",
-  measurementId: "",
-  messagingSenderId: "93335858315"
+  projectId: "garena-gears",
+  storageBucket: "garena-gears.appspot.com",
+  messagingSenderId: "93335858315",
+  appId: "1:93335858315:web:9ef6be42c3b81a236ab88e"
 };
 
 
-firebase.initializeApp(firebaseConfig);
-
-// Retrieve an instance of Firebase Messaging so that it can handle background
-// messages.
+// Initialize Firebase
+const app = firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage((payload) => {
-  // console.log('[firebase-messaging-sw.js] Received background message ', payload);
 
-  const notificationTitle = payload.data.title;
+self.addEventListener('push', function(event) {
+  let notificationData = {};
+  try {
+    notificationData = event.data.json().data;
+  } catch (e) {
+    notificationData = {
+      title: 'Garena Gears',
+      body: 'You have a new message.'
+    };
+  }
+
+  const { title, body, image, link } = notificationData;
+
   const notificationOptions = {
-    body: payload.data.body,
-    icon: '/img/garena.png',
-    image: payload.data.image,
+    body: body,
+    icon: '/img/garena.png', // Main small icon
+    badge: '/img/garena.png', // Small icon for the notification bar on Android
+    image: image, // Optional large image
     data: {
-      link: payload.data.link
+      url: link || '/'
     }
   };
 
-  const notificationPromise = self.registration.showNotification(notificationTitle, notificationOptions);
-  self.addEventListener('notificationclick', function(event) {
-    event.notification.close();
-    if (event.notification.data && event.notification.data.link) {
-      clients.openWindow(event.notification.data.link);
-    }
-  });
+  event.waitUntil(
+    self.registration.showNotification(title, notificationOptions)
+  );
+});
 
-  // Use event.waitUntil to keep the service worker alive
-  // until the notification is displayed.
-  self.waitUntil(notificationPromise);
+
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close(); // Close the notification
+
+  const urlToOpen = event.notification.data.url || '/';
+
+  event.waitUntil(
+    clients.matchAll({
+      type: 'window',
+      includeUncontrolled: true
+    }).then(function(clientList) {
+      // If a window is already open, focus it
+      for (var i = 0; i < clientList.length; i++) {
+        var client = clientList[i];
+        if (client.url === urlToOpen && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // Otherwise, open a new window
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
+  );
 });
