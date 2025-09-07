@@ -15,7 +15,6 @@ import PopupNotification from '@/components/popup-notification';
 import EventModal from '@/components/event-modal';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { app } from '@/lib/firebase/client';
-import { useToast } from '@/hooks/use-toast';
 
 export default function RootLayout({
   children,
@@ -29,7 +28,6 @@ export default function RootLayout({
   const [events, setEvents] = useState<Event[]>([]);
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [showEventModal, setShowEventModal] = useState(false);
-  const { toast } = useToast();
 
   const fetchInitialData = useCallback(async () => {
     const userData = await getUserData();
@@ -88,13 +86,8 @@ export default function RootLayout({
       }
     } catch (error) {
       console.error('An error occurred while retrieving token. ', error);
-      toast({
-        variant: 'destructive',
-        title: 'Notification Error',
-        description: 'Could not set up push notifications.',
-      });
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     fetchInitialData();
@@ -109,14 +102,8 @@ export default function RootLayout({
         const unsubscribe = onMessage(messaging, (payload) => {
             console.log('Foreground message received.', payload);
             // When a foreground message is received, simply re-fetch notifications
-            // to update the bell, but don't show a system notification.
+            // to update the bell. This prevents a duplicate system notification.
             fetchInitialData();
-            if (payload.notification) {
-                 toast({
-                    title: payload.notification.title,
-                    description: payload.notification.body,
-                });
-            }
         });
         return () => unsubscribe(); // Unsubscribe on cleanup
     }
