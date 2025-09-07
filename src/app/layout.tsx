@@ -7,12 +7,14 @@ import Header from '@/components/layout/header';
 import Footer from '@/components/layout/footer';
 import { useState, useEffect } from 'react';
 import LoadingScreen from '@/components/loading-screen';
-import { getEvents, getNotificationsForUser, getUserData, markNotificationAsRead } from './actions';
+import { getEvents, getNotificationsForUser, getUserData, markNotificationAsRead, saveFcmToken } from './actions';
 import type { Event, Notification, User } from '@/lib/definitions';
 import PopupNotification from '@/components/popup-notification';
 import EventModal from '@/components/event-modal';
 import FirebaseMessagingProvider from '@/components/firebase-messaging-provider';
-
+import { getMessaging, getToken } from 'firebase/messaging';
+import { app } from '@/lib/firebase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export default function RootLayout({
   children,
@@ -26,6 +28,41 @@ export default function RootLayout({
   const [events, setEvents] = useState<Event[]>([]);
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [showEventModal, setShowEventModal] = useState(false);
+  const { toast } = useToast();
+
+  const requestNotificationPermission = async () => {
+    try {
+      if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+        const messaging = getMessaging(app);
+        
+        // Wait for the service worker to be ready
+        const swRegistration = await navigator.serviceWorker.ready;
+        
+        const permission = await Notification.requestPermission();
+        
+        if (permission === 'granted') {
+          const currentToken = await getToken(messaging, { 
+              vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+              serviceWorkerRegistration: swRegistration 
+          });
+          if (currentToken) {
+            await saveFcmToken(currentToken);
+          } else {
+            console.log('No registration token available. Request permission to generate one.');
+          }
+        } else {
+          console.log('Unable to get permission to notify.');
+        }
+      }
+    } catch (error) {
+      console.error('An error occurred while retrieving token. ', error);
+      toast({
+        variant: 'destructive',
+        title: 'Notification Error',
+        description: 'Could not set up push notifications.',
+      });
+    }
+  };
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -60,6 +97,15 @@ export default function RootLayout({
 
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    // This effect runs when the user data is loaded
+    if (user && !user.fcmToken) {
+      // If user is logged in but doesn't have a token, ask for permission
+      requestNotificationPermission();
+    }
+  }, [user]);
+
 
   const handlePopupClose = async (notificationId: string) => {
     await markNotificationAsRead(notificationId);

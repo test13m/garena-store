@@ -7,12 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { registerGamingId, saveFcmToken } from '@/app/actions';
+import { registerGamingId } from '@/app/actions';
 import { Loader2, ShieldAlert, Mail } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertTitle, AlertDescription } from './ui/alert';
-import { getMessaging, getToken } from 'firebase/messaging';
-import { app } from '@/lib/firebase/client';
 
 interface GamingIdModalProps {
   isOpen: boolean;
@@ -26,39 +24,6 @@ export default function GamingIdModal({ isOpen, onOpenChange }: GamingIdModalPro
   const [bannedInfo, setBannedInfo] = useState<{ message: string } | null>(null);
   const { toast } = useToast();
   const router = useRouter();
-
-  const requestNotificationPermission = async () => {
-      try {
-        if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-          const messaging = getMessaging(app);
-          
-          const swRegistration = await navigator.serviceWorker.ready;
-          
-          const permission = await Notification.requestPermission();
-          
-          if (permission === 'granted') {
-            const currentToken = await getToken(messaging, { 
-                vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
-                serviceWorkerRegistration: swRegistration 
-            });
-            if (currentToken) {
-              await saveFcmToken(currentToken);
-            } else {
-              console.log('No registration token available. Request permission to generate one.');
-            }
-          } else {
-            console.log('Unable to get permission to notify.');
-          }
-        }
-      } catch (error) {
-        console.error('An error occurred while retrieving token. ', error);
-        toast({
-          variant: 'destructive',
-          title: 'Notification Error',
-          description: 'Could not set up push notifications.',
-        });
-      }
-    };
 
 
   const handleRegister = async () => {
@@ -74,10 +39,9 @@ export default function GamingIdModal({ isOpen, onOpenChange }: GamingIdModalPro
         title: 'Welcome!',
         description: result.message,
       });
-      // Now that user is registered, ask for notification permission
-      await requestNotificationPermission();
       onOpenChange(false);
-      router.refresh(); // Refresh the page to get the new user state
+      // We no longer ask for permission here, it's handled in the layout
+      router.refresh(); 
     } else if (result.isBanned) {
       setBannedInfo({ message: result.banMessage || 'Your account has been suspended.' });
     } else {
