@@ -36,6 +36,7 @@ export default function RootLayout({
         const messaging = getMessaging(app);
         
         // Wait for the service worker to be ready
+        await navigator.serviceWorker.register('/firebase-messaging-sw.js');
         const swRegistration = await navigator.serviceWorker.ready;
         
         const permission = await Notification.requestPermission();
@@ -104,6 +105,7 @@ export default function RootLayout({
       // If user is logged in but doesn't have a token, ask for permission
       requestNotificationPermission();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
 

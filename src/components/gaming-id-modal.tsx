@@ -40,7 +40,6 @@ export default function GamingIdModal({ isOpen, onOpenChange }: GamingIdModalPro
         description: result.message,
       });
       onOpenChange(false);
-      // We no longer ask for permission here, it's handled in the layout
       router.refresh(); 
     } else if (result.isBanned) {
       setBannedInfo({ message: result.banMessage || 'Your account has been suspended.' });
