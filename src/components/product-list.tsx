@@ -30,6 +30,16 @@ export default function ProductList({ initialProducts, user, orders, controls }:
 
   const filteredAndSortedProducts = useMemo(() => {
     let products = [...initialProducts];
+    
+    // Filter out hidden products for the current user
+    if (user) {
+        const hiddenProductIds = controls
+            .filter(c => c.type === 'hideProduct' && c.gamingId === user.gamingId)
+            .map(c => c.productId);
+        
+        products = products.filter(p => !hiddenProductIds.includes(p._id.toString()));
+    }
+
 
     // Filter by category
     if (selectedCategory !== 'all') {
@@ -60,7 +70,7 @@ export default function ProductList({ initialProducts, user, orders, controls }:
     }
 
     return products;
-  }, [initialProducts, searchTerm, selectedCategory]);
+  }, [initialProducts, searchTerm, selectedCategory, user, controls]);
 
   return (
     <section className="w-full py-6 md:py-10 lg:py-12 bg-background">

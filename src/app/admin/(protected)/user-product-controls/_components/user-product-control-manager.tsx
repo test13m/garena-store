@@ -28,7 +28,7 @@ export default function UserProductControlManager({ initialRules }: UserProductC
     const [products, setProducts] = useState<Product[]>([]);
     const [selectedProduct, setSelectedProduct] = useState('');
 
-    const [ruleType, setRuleType] = useState<'block' | 'allowPurchase'>('block');
+    const [ruleType, setRuleType] = useState<'block' | 'allowPurchase' | 'hideProduct'>('block');
     const [reason, setReason] = useState('');
     const [customReason, setCustomReason] = useState('');
     const [allowance, setAllowance] = useState(1);
@@ -55,7 +55,12 @@ export default function UserProductControlManager({ initialRules }: UserProductC
     };
     
     const handleSubmitRule = async (formData: FormData) => {
-        formData.append('gamingId', foundUser!.gamingId);
+        if (!foundUser || !selectedProduct) {
+            toast({ variant: 'destructive', title: 'Error', description: 'A user and product must be selected.' });
+            return;
+        }
+
+        formData.append('gamingId', foundUser.gamingId);
         formData.append('productId', selectedProduct);
         formData.append('type', ruleType);
 
@@ -66,7 +71,7 @@ export default function UserProductControlManager({ initialRules }: UserProductC
                 return;
             }
             formData.append('reason', finalReason);
-        } else {
+        } else if (ruleType === 'allowPurchase') {
             formData.append('allowance', String(allowance));
         }
 
@@ -74,16 +79,8 @@ export default function UserProductControlManager({ initialRules }: UserProductC
             const result = await setControlRule(formData);
             if (result.success) {
                 toast({ title: 'Success', description: result.message });
-                // Reset form and refetch rules
-                setGamingId('');
-                setFoundUser(null);
-                setProducts([]);
-                setSelectedProduct('');
-                setReason('');
-                setCustomReason('');
-                setAllowance(1);
-                const updatedRules = await (await fetch('/api/get-rules')).json(); // A simple API route could be made for this
-                window.location.reload(); // Simple reload for now
+                // Simple reload to refetch active rules list
+                window.location.reload(); 
             } else {
                 toast({ variant: 'destructive', title: 'Error', description: result.message });
             }
@@ -95,11 +92,24 @@ export default function UserProductControlManager({ initialRules }: UserProductC
             const result = await deleteControlRule(ruleId);
              if (result.success) {
                 toast({ title: 'Success', description: result.message });
-                setRules(prev => prev.filter(r => r._id !== ruleId));
+                setRules(prev => prev.filter(r => r._id.toString() !== ruleId));
             } else {
                 toast({ variant: 'destructive', title: 'Error', description: result.message });
             }
         });
+    }
+    
+    const getRuleDescription = (rule: UserProductControl) => {
+        switch (rule.type) {
+            case 'block':
+                return `Blocked (${rule.blockReason})`;
+            case 'allowPurchase':
+                return `Allowance (${rule.allowanceCount} purchases)`;
+            case 'hideProduct':
+                return 'Product Hidden';
+            default:
+                return 'Unknown Rule';
+        }
     }
 
     return (
@@ -131,7 +141,7 @@ export default function UserProductControlManager({ initialRules }: UserProductC
                                     <Select value={selectedProduct} onValueChange={setSelectedProduct}>
                                         <SelectTrigger id="product-select"><SelectValue placeholder="Choose a product..." /></SelectTrigger>
                                         <SelectContent>
-                                            {products.map(p => <SelectItem key={p._id} value={p._id}>{p.name}</SelectItem>)}
+                                            {products.map(p => <SelectItem key={p._id.toString()} value={p._id.toString()}>{p.name}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -143,6 +153,7 @@ export default function UserProductControlManager({ initialRules }: UserProductC
                                         <SelectContent>
                                             <SelectItem value="block">Block Purchase</SelectItem>
                                             <SelectItem value="allowPurchase">Override One-Time-Buy</SelectItem>
+                                            <SelectItem value="hideProduct">Hide Product</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -174,7 +185,7 @@ export default function UserProductControlManager({ initialRules }: UserProductC
                     </CardContent>
                     <CardFooter>
                        <Button type="submit" disabled={!foundUser || !selectedProduct || isSubmitting}>
-                         {isSubmitting && <Loader2 className="animate-spin" />}
+                         {isSubmitting && <Loader2 className="animate-spin mr-2" />}
                          Save Rule
                        </Button>
                     </CardFooter>
@@ -192,11 +203,11 @@ export default function UserProductControlManager({ initialRules }: UserProductC
                     ) : (
                         <div className="space-y-2">
                            {rules.map(rule => (
-                                <div key={rule._id} className="flex items-center justify-between p-3 border rounded-md bg-muted/20">
+                                <div key={rule._id.toString()} className="flex items-center justify-between p-3 border rounded-md bg-muted/20">
                                     <div>
                                         <p><strong>User:</strong> <span className="font-mono">{rule.gamingId}</span></p>
                                         <p><strong>Product:</strong> {rule.productName}</p>
-                                        <p><strong>Rule:</strong> <span className="capitalize font-semibold">{rule.type === 'block' ? `Blocked (${rule.blockReason})` : `Allowance (${rule.allowanceCount} purchases)`}</span></p>
+                                        <p><strong>Rule:</strong> <span className="capitalize font-semibold">{getRuleDescription(rule)}</span></p>
                                     </div>
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
@@ -209,7 +220,7 @@ export default function UserProductControlManager({ initialRules }: UserProductC
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>
                                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleDeleteRule(rule._id)}>Delete Rule</AlertDialogAction>
+                                                <AlertDialogAction onClick={() => handleDeleteRule(rule._id.toString())}>Delete Rule</AlertDialogAction>
                                             </AlertDialogFooter>
                                         </AlertDialogContent>
                                     </AlertDialog>

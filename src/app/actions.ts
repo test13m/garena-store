@@ -1757,7 +1757,7 @@ export async function findUserAndProductsForControl(gamingId: string): Promise<{
 const controlRuleSchema = z.object({
     gamingId: z.string(),
     productId: z.string(),
-    type: z.enum(['block', 'allowPurchase']),
+    type: z.enum(['block', 'allowPurchase', 'hideProduct']),
     reason: z.string().optional(),
     allowance: z.coerce.number().optional()
 });
@@ -1804,6 +1804,7 @@ export async function setControlRule(formData: FormData): Promise<{ success: boo
             { upsert: true }
         );
 
+        revalidatePath('/');
         revalidatePath('/admin/user-product-controls');
         return { success: true, message: 'Rule set successfully.' };
 

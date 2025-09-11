@@ -118,7 +118,7 @@ export interface UserProductControl {
     gamingId: string;
     productId: string;
     productName: string;
-    type: 'block' | 'allowPurchase';
+    type: 'block' | 'allowPurchase' | 'hideProduct';
     blockReason?: string; // For 'block' type
     allowanceCount?: number; // For 'allowPurchase' type
     createdAt: Date;
