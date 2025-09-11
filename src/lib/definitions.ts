@@ -49,6 +49,8 @@ export interface Product {
     category?: string;
     onlyUpi?: boolean;
     oneTimeBuy?: boolean;
+    visibility?: 'all' | 'custom';
+    visibleTo?: string[];
 }
 
 export interface Order {

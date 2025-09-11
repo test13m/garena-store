@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { customerFAQChatbot, type CustomerFAQChatbotInput } from '@/ai/flows/customer-faq-chatbot';
@@ -1064,8 +1065,28 @@ export async function updateWithdrawalStatus(withdrawalId: string, status: 'Comp
 export async function getProducts(query?: any) {
     noStore();
     const db = await connectToDatabase();
+    
+    const gamingId = cookies().get('gaming_id')?.value;
+    
+    // Base query to exclude vanished products
+    let baseQuery: any = { isVanished: { $ne: true }, ...(query || {}) };
+    
+    // If a user is logged in, apply visibility rules
+    if (gamingId) {
+        baseQuery = {
+            ...baseQuery,
+            $or: [
+                { visibility: { $ne: 'custom' } }, // Product is visible to all
+                { visibleTo: gamingId }           // Product is visible to this specific user
+            ]
+        };
+    } else {
+        // If no user is logged in, only show products visible to all
+        baseQuery.visibility = { $ne: 'custom' };
+    }
+
     const productsFromDb = await db.collection<Product>('products')
-      .find(query || { isVanished: { $ne: true } })
+      .find(baseQuery)
       .sort({ displayOrder: 1 })
       .toArray();
 
@@ -1087,6 +1108,8 @@ const productUpdateSchema = z.object({
   isCoinProduct: z.enum(['true', 'false']),
   purchasePrice: z.coerce.number().optional(),
   coinsApplicable: z.coerce.number().optional(),
+  visibility: z.enum(['all', 'custom']),
+  visibleTo: z.string().optional(),
 }).refine(
     (data) => {
         if (data.isCoinProduct === 'true') {
@@ -1131,6 +1154,9 @@ export async function updateProduct(productId: string, formData: FormData): Prom
     const oneTimeBuy = rawFormData.oneTimeBuy === 'on';
     const endDate = data.endDate ? new Date(data.endDate) : undefined;
     const isCoinProduct = data.isCoinProduct === 'true';
+    const visibleToList = data.visibility === 'custom' && data.visibleTo
+        ? data.visibleTo.split(',').map(id => id.trim()).filter(id => id)
+        : [];
     
     const updateData: Partial<Product> = {
         name: data.name,
@@ -1146,6 +1172,8 @@ export async function updateProduct(productId: string, formData: FormData): Prom
         isCoinProduct,
         purchasePrice: isCoinProduct ? data.purchasePrice : undefined,
         coinsApplicable: isCoinProduct ? 0 : data.coinsApplicable,
+        visibility: data.visibility,
+        visibleTo: visibleToList,
     };
 
 
@@ -1200,6 +1228,8 @@ export async function addProduct(isCoinProduct: boolean): Promise<{ success: boo
             category: "Coins",
             onlyUpi: false,
             oneTimeBuy: false,
+            visibility: 'all',
+            visibleTo: [],
         };
     } else {
         newProduct = {
@@ -1215,6 +1245,8 @@ export async function addProduct(isCoinProduct: boolean): Promise<{ success: boo
             category: "Uncategorized",
             onlyUpi: false,
             oneTimeBuy: false,
+            visibility: 'all',
+            visibleTo: [],
         };
     }
 
@@ -1860,3 +1892,4 @@ export async function getUserProductControls(gamingId: string): Promise<UserProd
         return [];
     }
 }
+

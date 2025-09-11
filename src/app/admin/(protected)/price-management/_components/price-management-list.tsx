@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -7,12 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Trash2, Coins, PlusCircle, ArrowUp, ArrowDown } from 'lucide-react';
+import { Loader2, Trash2, Coins, PlusCircle, Users, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { updateProduct, vanishProduct, addProduct } from '@/app/actions';
 import type { Product } from '@/lib/definitions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Textarea } from '@/components/ui/textarea';
 
 
 interface PriceManagementListProps {
@@ -215,6 +218,9 @@ export default function PriceManagementList({ initialProducts }: PriceManagement
                         </div>
                     </div>
                 </div>
+                <div className="lg:col-span-4 border-t pt-4">
+                    <VisibilityControl product={product} />
+                </div>
               </CardContent>
               <CardFooter className="flex justify-between bg-muted/40 p-4">
                  <AlertDialog>
@@ -247,5 +253,50 @@ export default function PriceManagementList({ initialProducts }: PriceManagement
         ))}
       </CardContent>
     </Card>
+  );
+}
+
+
+function VisibilityControl({ product }: { product: Product }) {
+  const [visibility, setVisibility] = useState(product.visibility || 'all');
+
+  return (
+    <div className="space-y-4">
+      <Label>Product Visibility</Label>
+      <RadioGroup
+        name="visibility"
+        defaultValue={visibility}
+        onValueChange={(value) => setVisibility(value as 'all' | 'custom')}
+        className="flex space-x-4"
+      >
+        <div className="flex items-center space-x-2">
+          <RadioGroupItem value="all" id={`all-${product._id}`} />
+          <Label htmlFor={`all-${product._id}`} className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-muted-foreground" /> All Users
+          </Label>
+        </div>
+        <div className="flex items-center space-x-2">
+          <RadioGroupItem value="custom" id={`custom-${product._id}`} />
+          <Label htmlFor={`custom-${product._id}`} className="flex items-center gap-2">
+            <User className="w-4 h-4 text-muted-foreground" /> Custom Users
+          </Label>
+        </div>
+      </RadioGroup>
+      
+      {visibility === 'custom' && (
+        <div className="space-y-2">
+          <Label htmlFor={`visibleTo-${product._id}`}>Visible to Gaming IDs</Label>
+          <Textarea
+            id={`visibleTo-${product._id}`}
+            name="visibleTo"
+            defaultValue={product.visibleTo?.join(', ')}
+            placeholder="Enter comma-separated Gaming IDs"
+          />
+          <p className="text-xs text-muted-foreground">
+            Enter a comma-separated list of Gaming IDs that should be able to see this product.
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
