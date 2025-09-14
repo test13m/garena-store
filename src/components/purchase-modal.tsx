@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -67,7 +67,7 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
   const [gamingId, setGamingId] = useState(initialUser?.gamingId || '');
   const [redeemCode, setRedeemCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [paymentDetails, setPaymentDetails] = useState<{qrImageUrl: string; paymentLinkUrl: string} | null>(null);
+  const [paymentDetails, setPaymentDetails] = useState<{qrImageUrl: string; paymentLinkUrl: string; orderId: string;} | null>(null);
   const [isQrLoading, setIsQrLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -85,6 +85,31 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
     });
     handleClose();
   }
+
+  // Polling logic for QR code payment
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+    if (step === 'qrPayment' && user?.gamingId) {
+      intervalId = setInterval(async () => {
+        try {
+          const response = await fetch(`/api/check-order-status?gamingId=${user.gamingId}`);
+          const data = await response.json();
+          if (data.success && data.orderFound) {
+            clearInterval(intervalId);
+            toast({
+              title: "Payment Successful!",
+              description: "Your order has been processed.",
+            });
+            window.location.reload();
+          }
+        } catch (error) {
+          console.error("Error checking payment status:", error);
+          // Don't stop polling on fetch errors, just log them
+        }
+      }, 5000); // Poll every 5 seconds
+    }
+    return () => clearInterval(intervalId);
+  }, [step, user, toast]);
 
 
   useEffect(() => {
@@ -130,8 +155,8 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
 
     const result = await createRazorpayOrder(finalPrice, user.gamingId, product._id);
 
-    if (result.success && result.qrImageUrl && result.paymentLinkUrl) {
-        setPaymentDetails({ qrImageUrl: result.qrImageUrl, paymentLinkUrl: result.paymentLinkUrl });
+    if (result.success && result.qrImageUrl && result.paymentLinkUrl && result.orderId) {
+        setPaymentDetails({ qrImageUrl: result.qrImageUrl, paymentLinkUrl: result.paymentLinkUrl, orderId: result.orderId });
     } else {
         toast({ variant: 'destructive', title: 'Payment Error', description: result.error || 'Could not create payment details.' });
         handleClose();
@@ -305,8 +330,7 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
                                     src={paymentDetails.qrImageUrl}
                                     alt="UPI QR Code"
                                     layout="fill"
-                                    className="object-cover object-center scale-[1.6]"
-                                    style={{ objectPosition: 'center 52%' }}
+                                    className="object-cover"
                                 />
                             </div>
                         )}
@@ -320,25 +344,25 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
 
                     <div className="w-full border-t pt-4 grid grid-cols-2 gap-3">
                          <Button asChild variant="outline" className="h-12" disabled={!paymentDetails}>
-                            <a href={paymentDetails?.paymentLinkUrl} target="_blank" rel="noopener noreferrer">
+                            <a href={paymentDetails?.paymentLinkUrl}>
                                 <Image src="/img/gpay.png" alt="Google Pay" width={24} height={24} className="mr-2" />
                                 Google Pay
                             </a>
                         </Button>
                          <Button asChild variant="outline" className="h-12" disabled={!paymentDetails}>
-                            <a href={paymentDetails?.paymentLinkUrl} target="_blank" rel="noopener noreferrer">
+                            <a href={paymentDetails?.paymentLinkUrl}>
                                 <Image src="/img/phonepay.png" alt="PhonePe" width={24} height={24} className="mr-2" />
                                 PhonePe
                             </a>
                         </Button>
                         <Button asChild variant="outline" className="h-12" disabled={!paymentDetails}>
-                            <a href={paymentDetails?.paymentLinkUrl} target="_blank" rel="noopener noreferrer">
+                            <a href={paymentDetails?.paymentLinkUrl}>
                                  <Image src="/img/paytm.png" alt="Paytm" width={24} height={24} className="mr-2" />
                                 Paytm
                             </a>
                         </Button>
                          <Button asChild variant="outline" className="h-12" disabled={!paymentDetails}>
-                            <a href={paymentDetails?.paymentLinkUrl} target="_blank" rel="noopener noreferrer">
+                            <a href={paymentDetails?.paymentLinkUrl}>
                                 <Smartphone className="mr-2" />
                                 Other UPI
                             </a>
@@ -358,10 +382,12 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
-        <button onClick={handleClose} className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </button>
+        <DialogClose asChild>
+            <button onClick={handleClose} className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </button>
+        </DialogClose>
         {renderContent()}
       </DialogContent>
     </Dialog>

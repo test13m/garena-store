@@ -8,6 +8,7 @@
 
 
 
+
 'use server';
 
 import { customerFAQChatbot, type CustomerFAQChatbotInput } from '@/ai/flows/customer-faq-chatbot';
@@ -646,6 +647,12 @@ export async function createRazorpayOrder(amount: number, gamingId: string, prod
     };
 
     try {
+        const orderPromise = razorpay.orders.create({
+            amount: amount * 100, // amount in the smallest currency unit
+            currency: "INR",
+            notes: notes
+        });
+
         const qrPromise = razorpay.qrCode.create({
             type: "upi_qr",
             name: `Garena: ${productId}`,
@@ -662,13 +669,13 @@ export async function createRazorpayOrder(amount: number, gamingId: string, prod
             upi_link: true,
             description: `Purchase for Gaming ID: ${gamingId}`,
             notes: notes,
-            callback_url: `${process.env.NEXT_PUBLIC_BASE_URL}/order`,
-            callback_method: 'get' as const
+            callback_url: `${process.env.NEXT_PUBLIC_BASE_URL}/`,
+            callback_method: 'get'
         });
 
-        const [qrCode, paymentLink] = await Promise.all([qrPromise, linkPromise]);
+        const [order, qrCode, paymentLink] = await Promise.all([orderPromise, qrPromise, linkPromise]);
         
-        return { success: true, qrImageUrl: qrCode.image_url, paymentLinkUrl: paymentLink.short_url };
+        return { success: true, orderId: order.id, qrImageUrl: qrCode.image_url, paymentLinkUrl: paymentLink.short_url };
     } catch (error: any) {
         console.error('Error creating Razorpay QR or Link:', error.error?.description || error);
         return { success: false, error: 'Failed to create payment details. ' + (error.error?.description || '') };
@@ -1878,6 +1885,7 @@ export async function getUserProductControls(gamingId: string): Promise<UserProd
         return [];
     }
 }
+
 
 
 
