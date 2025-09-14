@@ -296,12 +296,18 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
                         <p className="text-4xl font-bold text-primary font-sans">₹{finalPrice}</p>
                     </div>
                     
-                    <div className="p-1 bg-white rounded-lg border w-48 h-48 relative flex items-center justify-center">
+                    <div className="p-1 bg-white rounded-lg border w-40 h-40 relative flex items-center justify-center">
                         {isQrLoading || !paymentDetails ? (
                             <Loader2 className="w-12 h-12 text-primary animate-spin" />
                         ) : (
                             <div className="w-full h-full relative overflow-hidden rounded-md">
-                                <Image src={paymentDetails.qrImageUrl} alt="UPI QR Code" layout="fill" className="object-cover" style={{ objectPosition: 'center 40%' }}/>
+                                <Image
+                                    src={paymentDetails.qrImageUrl}
+                                    alt="UPI QR Code"
+                                    layout="fill"
+                                    className="object-cover object-center scale-[2.8]"
+                                    style={{ objectPosition: 'center 48%' }}
+                                />
                             </div>
                         )}
                     </div>
