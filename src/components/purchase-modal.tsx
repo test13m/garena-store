@@ -254,7 +254,7 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
                 <div className="flex flex-col items-center justify-center space-y-4 py-4">
                     <p className="text-3xl font-bold text-primary font-sans">Pay: ₹{finalPrice}</p>
                     <div className="p-4 bg-white rounded-lg border w-52 h-52 relative overflow-hidden">
-                         <Image src={paymentDetails.qrImageUrl} alt="UPI QR Code" layout="fill" className="object-cover" objectPosition="top"/>
+                         <Image src={paymentDetails.qrImageUrl} alt="UPI QR Code" layout="fill" className="object-cover" objectPosition="center"/>
                     </div>
                     <p className="text-sm text-muted-foreground">Waiting for payment confirmation...</p>
                     <div className="w-full border-t pt-4">
