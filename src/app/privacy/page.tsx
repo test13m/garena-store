@@ -124,7 +124,7 @@ export default function PrivacyPolicyPage() {
                             <div>
                                 <p className="font-semibold font-mono">{item.gamingId}</p>
                                 <p className="text-xs text-muted-foreground">
-                                  <FormattedDate dateString={item.timestamp} />
+                                  Logout Time: <FormattedDate dateString={item.timestamp} />
                                 </p>
                             </div>
                           </div>
