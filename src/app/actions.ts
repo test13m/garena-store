@@ -671,6 +671,7 @@ export async function createRedeemCodeOrder(
     }
     
     const db = await connectToDatabase();
+    const session = db.client.startSession();
     
     const coinsUsed = product.isCoinProduct ? 0 : Math.min(user.coins, product.coinsApplicable || 0);
     const finalPrice = product.isCoinProduct ? product.purchasePrice || product.price : product.price - coinsUsed;
@@ -694,17 +695,41 @@ export async function createRedeemCodeOrder(
     };
 
     try {
-        await db.collection<Order>('orders').insertOne(newOrder as Order);
+        await session.withTransaction(async () => {
+            await db.collection<Order>('orders').insertOne(newOrder as Order, { session });
 
-        if (coinsUsed > 0 && !product.isCoinProduct) {
-            await db.collection<User>('users').updateOne({ _id: new ObjectId(user._id) }, { $inc: { coins: -coinsUsed } });
-        }
+            if (coinsUsed > 0 && !product.isCoinProduct) {
+                await db.collection<User>('users').updateOne({ _id: new ObjectId(user._id) }, { $inc: { coins: -coinsUsed } }, { session });
+            }
+
+            // Create in-app notification
+            const notificationMessage = `Your order for ${product.name} with a redeem code is now processing!`;
+            const newNotification: Omit<Notification, '_id'> = {
+                gamingId: gamingId,
+                message: notificationMessage,
+                isRead: false,
+                createdAt: new Date(),
+                imageUrl: product.imageUrl,
+            };
+            await db.collection<Notification>('notifications').insertOne(newNotification as Notification, { session });
+        });
+        await session.endSession();
 
         await sendRedeemCodeNotification({
           gamingId: newOrder.gamingId,
           productName: newOrder.productName,
           redeemCode: newOrder.redeemCode!
         });
+
+        // Send push notification
+        if (user.fcmToken) {
+            await sendPushNotification({
+                token: user.fcmToken,
+                title: 'Garena Store: Order Processing!',
+                body: `Your order for ${product.name} with a redeem code is now processing!`,
+                imageUrl: product.imageUrl,
+            });
+        }
 
         revalidatePath('/');
         revalidatePath('/order');
@@ -2049,3 +2074,4 @@ export async function getLoginHistory(): Promise<{ gamingId: string; timestamp: 
 }
 
     
+
