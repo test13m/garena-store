@@ -1,12 +1,12 @@
 
 
-
 import { NextRequest, NextResponse } from 'next/server';
 import { createHmac } from 'crypto';
 import { connectToDatabase } from '@/lib/mongodb';
-import { type Product, type User, type Order, type LegacyUser } from '@/lib/definitions';
+import { type Product, type User, type Order, type LegacyUser, type Notification } from '@/lib/definitions';
 import { ObjectId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
+import { sendPushNotification } from '@/lib/push-notifications';
 
 const WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
 
@@ -118,8 +118,29 @@ export async function POST(req: NextRequest) {
                     { session }
                 );
             }
+
+            // Create in-app notification
+            const notificationMessage = `Your purchase of ${product.name} for ₹${finalPrice} was successful!`;
+            const newNotification: Omit<Notification, '_id'> = {
+                gamingId: gamingId,
+                message: notificationMessage,
+                isRead: false,
+                createdAt: new Date(),
+                imageUrl: product.imageUrl,
+            };
+            await db.collection<Notification>('notifications').insertOne(newNotification as Notification, { session });
         });
         await session.endSession();
+        
+        // Send push notification outside the transaction
+        if (user.fcmToken) {
+            await sendPushNotification({
+                token: user.fcmToken,
+                title: 'Garena Store: Purchase Successful!',
+                body: `Your purchase of ${product.name} for ₹${finalPrice} was successful!`,
+                imageUrl: product.imageUrl,
+            });
+        }
         
         // Revalidate paths to update frontend caches
         revalidatePath('/');
