@@ -105,6 +105,10 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
           const data = await response.json();
           if (data.success && data.orderFound) {
             clearInterval(intervalId);
+            toast({
+                title: 'Payment Confirmed!',
+                description: "Your purchase is being processed.",
+            });
             triggerRefresh();
             setStep('success');
             setTimeout(() => handleClose(), 5000);
@@ -115,7 +119,7 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
       }, 3000); // Poll every 3 seconds
     }
     return () => clearInterval(intervalId);
-  }, [step, currentTransactionId, triggerRefresh, handleClose]);
+  }, [step, currentTransactionId, triggerRefresh, handleClose, toast]);
 
 
   useEffect(() => {
