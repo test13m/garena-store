@@ -124,22 +124,4 @@
       left: 150%;
     }
   }
-
-  @keyframes glowing-border {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-
-  .btn-glow::before {
-    content: '';
-    position: absolute;
-    left: -2px;
-    top: -2px;
-    width: calc(100% + 4px);
-    height: calc(100% + 4px);
-    background: conic-gradient(from 0deg, transparent, white, transparent);
-    animation: glowing-border 4s linear infinite;
-    border-radius: inherit; /* Use the button's border radius */
-    z-index: -1;
-  }
 }

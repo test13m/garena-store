@@ -51,8 +51,8 @@ export default function BrowserRedirect() {
         <Button 
           variant="outline" 
           className={cn(
-            "relative z-10 overflow-hidden",
-            "bg-black text-white border-white hover:bg-white hover:text-black btn-glow"
+            "relative overflow-hidden",
+            "bg-transparent text-white border-white hover:bg-white hover:text-black animate-glowing-ray"
           )}
           onClick={() => window.location.reload()}
         >
