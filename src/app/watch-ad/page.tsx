@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -23,7 +22,7 @@ export default function WatchAdPage() {
   
   const [progress, setProgress] = useState(0);
   const [timeElapsed, setTimeElapsed] = useState(0);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [isRewardGranted, setIsRewardGranted] = useState(false);
   const [showCta, setShowCta] = useState(false);
   
@@ -192,8 +191,8 @@ export default function WatchAdPage() {
           </div>
           
           {!ad.hideCtaButton && (
-             <div className={cn(
-                "absolute bottom-20 left-1/2 -translate-x-1/2 flex flex-col items-center gap-4 transition-all duration-500 pointer-events-auto",
+            <div className={cn(
+                "absolute bottom-20 left-0 right-0 flex justify-center transition-opacity duration-500 pointer-events-auto",
                 showCta ? 'animate-pop-in' : 'opacity-0'
             )}>
                 <Button 
