@@ -22,7 +22,7 @@ export default function WatchAdPage() {
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   
   const [timeElapsed, setTimeElapsed] = useState(0);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [isRewardGranted, setIsRewardGranted] = useState(false);
   const [showCta, setShowCta] = useState(false);
   
@@ -155,33 +155,27 @@ export default function WatchAdPage() {
       grey: 'bg-gray-500 text-white hover:bg-gray-600',
     }
 
+    const progress = (timeElapsed / ad.totalDuration) * 100;
     const showSkipButton = isRewardGranted && ad.rewardTime && ad.rewardTime < ad.totalDuration;
 
     return (
       <div className="relative w-full h-full">
-         <div 
-            className="absolute top-0 left-0 right-0 p-4 z-10 flex items-center gap-4 bg-gradient-to-b from-black/50 to-transparent"
-         >
-            <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
-                <div
-                    className="h-full bg-white origin-left"
-                    style={{
-                        animation: `progress-smooth ${ad.totalDuration}s linear forwards`,
-                    }}
-                />
-            </div>
-             <div className="flex items-center gap-2">
-                <Button onClick={() => setIsMuted(!isMuted)} variant="ghost" size="icon" className="text-white">
-                    {isMuted ? <VolumeX /> : <Volume2 />}
+        <div 
+          className="absolute top-0 left-0 right-0 p-4 z-10 flex items-center gap-4 bg-gradient-to-b from-black/50 to-transparent"
+        >
+          <Progress value={progress} className="w-full h-1" />
+          <div className="flex items-center gap-2">
+            <Button onClick={() => setIsMuted(!isMuted)} variant="ghost" size="icon" className="text-white">
+              {isMuted ? <VolumeX /> : <Volume2 />}
+            </Button>
+            {showSkipButton && (
+                <Button onClick={handleSkip} variant="secondary" className="bg-white/80 hover:bg-white text-black backdrop-blur-sm rounded-full">
+                    <SkipForward className="mr-2"/>
+                    Skip Ad
                 </Button>
-                {showSkipButton && (
-                    <Button onClick={handleSkip} variant="secondary" className="bg-white/80 hover:bg-white text-black backdrop-blur-sm rounded-full">
-                        <SkipForward className="mr-2"/>
-                        Skip Ad
-                    </Button>
-                )}
-            </div>
+            )}
           </div>
+        </div>
         
         <div 
           className="w-full h-full cursor-pointer"
@@ -228,4 +222,3 @@ export default function WatchAdPage() {
      </>
   );
 }
-
