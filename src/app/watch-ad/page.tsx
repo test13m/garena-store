@@ -183,7 +183,7 @@ export default function WatchAdPage() {
         
         <div 
           className="w-full h-full cursor-pointer"
-          onClick={ad.hideCtaButton ? handleCtaClick : undefined}
+          onClick={handleCtaClick}
         >
             <video
               ref={videoRef}
