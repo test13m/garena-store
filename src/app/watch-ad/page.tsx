@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -21,7 +22,7 @@ export default function WatchAdPage() {
   
   const [progress, setProgress] = useState(0);
   const [timeElapsed, setTimeElapsed] = useState(0);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false); // Default to sound ON
   const [isRewardGranted, setIsRewardGranted] = useState(false);
   const [showCta, setShowCta] = useState(false);
   
@@ -49,6 +50,22 @@ export default function WatchAdPage() {
     }
     fetchData();
   }, []);
+
+  // Attempt to play video when it's ready
+  useEffect(() => {
+      if (videoRef.current && ad) {
+          videoRef.current.play().catch(error => {
+              // If autoplay with sound fails (common browser policy), mute and try again.
+              console.warn("Autoplay with sound failed. Muting video.", error);
+              setIsMuted(true);
+              if(videoRef.current) {
+                videoRef.current.muted = true;
+                videoRef.current.play();
+              }
+          });
+      }
+  }, [ad]);
+
 
   // Main timer and progress effect
   useEffect(() => {
@@ -136,12 +153,11 @@ export default function WatchAdPage() {
           autoPlay
           playsInline
           muted={isMuted}
-          className="w-full h-full object-cover"
-          onCanPlay={() => videoRef.current?.play().catch(() => setIsMuted(true))}
+          className="w-full h-full object-contain"
         />
         
         {/* Overlay & UI */}
-        <div className="absolute inset-0 bg-black/30 flex flex-col justify-between p-4">
+        <div className="absolute inset-0 bg-black/30 flex flex-col justify-between p-4 overflow-hidden">
           {/* Top Bar */}
           <div className="flex justify-between items-center">
             <Progress value={progress} className="w-full h-1.5" />
@@ -151,7 +167,7 @@ export default function WatchAdPage() {
           </div>
           
           {/* Bottom Bar */}
-          <div className="flex flex-col items-center gap-4 transition-all duration-500" style={{ opacity: showCta ? 1 : 0, transform: showCta ? 'translateY(0)' : 'translateY(20px)'}}>
+          <div className={cn("flex flex-col items-center gap-4 transition-all duration-500", showCta ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10')}>
             {isRewardGranted && (
                  <Button onClick={handleSkip} variant="secondary" className="bg-white/80 hover:bg-white text-black backdrop-blur-sm rounded-full">
                     <SkipForward className="mr-2"/>
