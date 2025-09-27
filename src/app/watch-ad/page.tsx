@@ -22,7 +22,7 @@ export default function WatchAdPage() {
   
   const [progress, setProgress] = useState(0);
   const [timeElapsed, setTimeElapsed] = useState(0);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const [isRewardGranted, setIsRewardGranted] = useState(false);
   const [showCta, setShowCta] = useState(false);
   
@@ -110,11 +110,11 @@ export default function WatchAdPage() {
     return () => clearInterval(timer);
   }, [ad, isLoading, router, toast]);
 
-  const handleCtaClick = () => {
+  const handleCtaClick = useCallback(() => {
     if (ad) {
       window.open(ad.ctaLink, '_blank');
     }
-  };
+  }, [ad]);
   
   const handleSkip = () => {
     router.push('/');
@@ -147,46 +147,55 @@ export default function WatchAdPage() {
 
     return (
       <div className="relative w-full h-full">
-        <video
-          ref={videoRef}
-          src={ad.videoUrl}
-          autoPlay
-          playsInline
-          muted={isMuted}
-          className="w-full h-full object-contain"
-        />
+        <div 
+          className="w-full h-full cursor-pointer"
+          onClick={ad.hideCtaButton ? handleCtaClick : undefined}
+        >
+            <video
+            ref={videoRef}
+            src={ad.videoUrl}
+            autoPlay
+            playsInline
+            muted={isMuted}
+            className="w-full h-full object-contain"
+            />
+        </div>
         
         {/* UI Elements */}
         <div className="absolute inset-0 flex flex-col justify-between p-4 pointer-events-none">
           {/* Top Bar */}
           <div className="flex justify-between items-center w-full pointer-events-auto">
             <Progress value={progress} className="w-full h-1.5" />
-            <Button onClick={() => setIsMuted(!isMuted)} variant="ghost" size="icon" className="text-white ml-4">
-              {isMuted ? <VolumeX /> : <Volume2 />}
-            </Button>
+             <div className="flex items-center gap-2 ml-4">
+                <Button onClick={() => setIsMuted(!isMuted)} variant="ghost" size="icon" className="text-white">
+                    {isMuted ? <VolumeX /> : <Volume2 />}
+                </Button>
+                {isRewardGranted && (
+                    <Button onClick={handleSkip} variant="secondary" className="bg-white/80 hover:bg-white text-black backdrop-blur-sm rounded-full">
+                        <SkipForward className="mr-2"/>
+                        Skip Ad
+                    </Button>
+                )}
+            </div>
           </div>
           
           {/* Bottom Bar */}
-           <div className={cn(
-            "flex flex-col items-center gap-4 transition-all duration-500 pointer-events-auto",
-            "transform",
-            showCta ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-          )}>
-            {isRewardGranted && (
-                 <Button onClick={handleSkip} variant="secondary" className="bg-white/80 hover:bg-white text-black backdrop-blur-sm rounded-full">
-                    <SkipForward className="mr-2"/>
-                    Skip Ad
+          {!ad.hideCtaButton && (
+             <div className={cn(
+                "flex flex-col items-center gap-4 transition-all duration-500 pointer-events-auto",
+                "transform",
+                showCta ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+            )}>
+                <Button 
+                    onClick={handleCtaClick}
+                    variant={ad.ctaColor}
+                    size="lg"
+                    className={cn("text-lg h-12 px-8 font-bold", buttonShapeClass[ad.ctaShape])}
+                >
+                {ad.ctaText}
                 </Button>
-            )}
-            <Button 
-                onClick={handleCtaClick}
-                variant={ad.ctaColor}
-                size="lg"
-                className={cn("text-lg h-12 px-8 font-bold", buttonShapeClass[ad.ctaShape])}
-            >
-              {ad.ctaText}
-            </Button>
-          </div>
+            </div>
+          )}
         </div>
       </div>
     );

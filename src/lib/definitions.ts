@@ -161,6 +161,7 @@ export interface CustomAd {
   ctaColor: 'primary' | 'destructive' | 'outline';
   totalDuration: number; // in seconds
   rewardTime: number; // in seconds, must be <= totalDuration
+  hideCtaButton?: boolean;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;

@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { saveAdSettings } from '../actions';
 import type { CustomAd } from '@/lib/definitions';
 import { Loader2, Save } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -89,6 +90,10 @@ export default function AdManager({ initialAdSettings }: AdManagerProps) {
                                     <Label className="flex items-center gap-2 cursor-pointer"><RadioGroupItem value="outline" /> Outline</Label>
                                 </RadioGroup>
                             </div>
+                        </div>
+                         <div className="flex items-center space-x-2 pt-4">
+                            <Checkbox id="hideCtaButton" name="hideCtaButton" defaultChecked={initialAdSettings?.hideCtaButton} />
+                            <Label htmlFor="hideCtaButton" className="cursor-pointer">Hide CTA Button (video will be clickable)</Label>
                         </div>
                     </div>
 

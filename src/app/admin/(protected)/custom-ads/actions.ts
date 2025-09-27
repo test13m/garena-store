@@ -16,6 +16,7 @@ const adSchema = z.object({
     ctaColor: z.enum(['primary', 'destructive', 'outline']),
     totalDuration: z.coerce.number().int().min(5, 'Total duration must be at least 5 seconds.'),
     rewardTime: z.coerce.number().int().min(1, 'Reward time must be at least 1 second.'),
+    hideCtaButton: z.enum(['on', 'off']).optional(),
 }).refine(data => data.rewardTime <= data.totalDuration, {
     message: 'Reward time cannot be greater than the total duration.',
     path: ['rewardTime'],
@@ -66,6 +67,7 @@ export async function saveAdSettings(prevState: { success: boolean, message: str
     }
 
     const { videoUrl, ctaText, ctaLink, ctaShape, ctaColor, totalDuration, rewardTime } = validated.data;
+    const hideCtaButton = rawData.hideCtaButton === 'on';
 
     try {
         const db = await connectToDatabase();
@@ -86,6 +88,7 @@ export async function saveAdSettings(prevState: { success: boolean, message: str
             ctaColor,
             totalDuration,
             rewardTime,
+            hideCtaButton,
             isActive: true,
             createdAt: now,
             updatedAt: now,
