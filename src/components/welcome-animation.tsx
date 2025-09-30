@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect } from 'react';
@@ -20,7 +19,7 @@ export default function WelcomeAnimation({ coins }: WelcomeAnimationProps) {
   const coinParticles = Array.from({ length: 15 });
 
   return (
-    <div className="fixed inset-0 z-[999] flex flex-col items-center justify-center bg-background p-8">
+    <div className="fixed inset-0 z-[999] flex flex-col items-center justify-center bg-background/90 backdrop-blur-sm p-8">
         <div className="text-center p-8 pt-12 flex flex-col items-center">
             {/* Main animated icon */}
             <div className="relative inline-block mb-6">
