@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
             if (product.isCoinProduct) {
                  notificationMessage = `Your purchase of ${product.name} for ₹${finalPrice} was successful! The coins have been added to your account.`;
             } else {
-                 notificationMessage = `Payment confirmed for your purchase of "${product.name}" for ₹${finalPrice}. Your order is now under processing.`;
+                 notificationMessage = `Your payment of ₹${finalPrice} for "${product.name}" has been successfully received. Currently, it's under processing.`;
             }
 
             const newNotification: Omit<Notification, '_id'> = {
@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
                 pushBody = `Your purchase of ${product.name} for ₹${finalPrice} was successful!`;
             } else {
                 pushTitle = 'Garena Store: Payment Received';
-                pushBody = `Payment confirmed for your purchase of "${product.name}" for ₹${finalPrice}. Your order is now under processing.`;
+                pushBody = `Your payment of ₹${finalPrice} for "${product.name}" has been confirmed. Currently, it's under processing.`;
             }
             
             await sendPushNotification({
