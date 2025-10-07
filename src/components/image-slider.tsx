@@ -100,7 +100,6 @@ export default function ImageSlider() {
                     className="object-cover"
                     priority={index === 0}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                 </div>
               </CarouselItem>
             ))}
