@@ -129,7 +129,7 @@ export default function FaqChatbot() {
           </SheetDescription>
         </SheetHeader>
         <div className="flex-grow mb-4 overflow-hidden">
-            <ScrollArea className="h-full pr-4 -mr-6" ref={scrollAreaRef}>
+            <ScrollArea className="h-full pr-4" ref={scrollAreaRef}>
              {isHistoryLoading ? (
                  <div className="flex justify-center items-center h-full">
                     <Loader2 className="w-8 h-8 animate-spin text-primary" />
