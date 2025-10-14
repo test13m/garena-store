@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -10,13 +11,17 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function RefundRequestPage() {
   const [transactionId, setTransactionId] = useState('');
+  const [gamingId, setGamingId] = useState('');
   const [message, setMessage] = useState('');
   const isMobile = useIsMobile();
 
   const handleSendEmail = () => {
     const recipient = 'garenaffmaxstore@gmail.com';
-    const subject = `Refund Request - UTR/Code: ${transactionId}`;
+    const subject = `Refund Request - ID: ${gamingId} - UTR/Code: ${transactionId}`;
     const body = `
+Gaming ID:
+${gamingId}
+
 UTR/Transaction ID or Redeem Code:
 ${transactionId}
 
@@ -39,10 +44,19 @@ ${message}
         <CardHeader>
           <CardTitle className="text-3xl font-headline">Refund Request</CardTitle>
           <CardDescription>
-            Fill out the form below to submit a refund request.
+            Fill out the form below to submit a refund request. This will open your default email client.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+           <div className="space-y-2">
+            <Label htmlFor="gaming-id">Your Gaming ID</Label>
+            <Input
+              id="gaming-id"
+              placeholder="Enter your Gaming ID"
+              value={gamingId}
+              onChange={(e) => setGamingId(e.target.value)}
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="transaction-id">UTR/Transaction ID or Redeem Code</Label>
             <Input
@@ -64,8 +78,8 @@ ${message}
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleSendEmail} size="lg" className="w-full">
-            Send in Email
+          <Button onClick={handleSendEmail} size="lg" className="w-full" disabled={!gamingId || !transactionId || !message}>
+            Open in Email
           </Button>
         </CardFooter>
       </Card>
