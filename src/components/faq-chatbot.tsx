@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, type FormEvent, useEffect, useCallback } from 'react';
@@ -12,7 +13,7 @@ import {
   SheetFooter,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { askQuestion, getChatHistory } from '@/app/actions';
 import { ScrollArea } from './ui/scroll-area';
@@ -43,7 +44,7 @@ export default function FaqChatbot() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -53,7 +54,7 @@ export default function FaqChatbot() {
       if (scrollViewport) {
         scrollViewport.scrollTo({ top: scrollViewport.scrollHeight, behavior: 'smooth' });
       }
-    }, 100); // A small delay to ensure the DOM has updated
+    }, 100);
   }, []);
 
   const fetchHistory = useCallback(async () => {
@@ -87,9 +88,15 @@ export default function FaqChatbot() {
     }
   }, [messages, scrollToBottom]);
 
+  const handleTextareaInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const textarea = event.target;
+    textarea.style.height = 'auto'; // Reset height
+    textarea.style.height = `${textarea.scrollHeight}px`; // Set to content height
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const question = inputRef.current?.value;
+    const question = textareaRef.current?.value;
 
     if (!question || isLoading) return;
 
@@ -97,8 +104,9 @@ export default function FaqChatbot() {
     const userMessage: Message = { role: 'user', content: question, timestamp: new Date() };
     setMessages((prev) => [...prev, userMessage]);
 
-    if (inputRef.current) {
-      inputRef.current.value = '';
+    if (textareaRef.current) {
+      textareaRef.current.value = '';
+      textareaRef.current.style.height = 'auto'; // Reset height after submit
     }
     
     // Prepare history for the AI
@@ -181,8 +189,21 @@ export default function FaqChatbot() {
             </ScrollArea>
         </div>
         <SheetFooter>
-          <form onSubmit={handleSubmit} className="flex w-full space-x-2">
-            <Input ref={inputRef} placeholder="Ask a question..." disabled={isLoading || isHistoryLoading} />
+          <form onSubmit={handleSubmit} className="flex w-full items-end space-x-2">
+            <Textarea
+              ref={textareaRef}
+              placeholder="Ask a question..."
+              disabled={isLoading || isHistoryLoading}
+              className="resize-none max-h-32 min-h-10"
+              rows={1}
+              onInput={handleTextareaInput}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e.currentTarget.form as HTMLFormElement);
+                }
+              }}
+            />
             <Button type="submit" size="icon" disabled={isLoading || isHistoryLoading}>
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
