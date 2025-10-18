@@ -40,6 +40,34 @@ const FormattedDate = ({ dateString }: { dateString: string }) => {
     });
 }
 
+const ClickableMessage = ({ message }: { message: string }) => {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = message.split(urlRegex);
+
+  return (
+    <p className="text-sm mb-2 font-sans">
+      {parts.map((part, index) => {
+        if (part.match(urlRegex)) {
+          return (
+            <a
+              key={index}
+              href={part}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+              onClick={(e) => e.stopPropagation()} // Prevent sheet from closing
+            >
+              {part}
+            </a>
+          );
+        }
+        return part;
+      })}
+    </p>
+  );
+};
+
+
 export default function NotificationBell({ notifications: initialNotifications, onRefresh }: NotificationBellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentNotifications, setCurrentNotifications] = useState(initialNotifications);
@@ -93,7 +121,7 @@ export default function NotificationBell({ notifications: initialNotifications, 
           <div className="space-y-4 pb-8">
             {currentNotifications.map((notification) => (
               <div key={notification._id.toString()} className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
-                <p className="text-sm mb-2 font-sans">{notification.message}</p>
+                <ClickableMessage message={notification.message} />
                 {notification.imageUrl && (
                   <div className="relative aspect-video w-full mb-2">
                     <Image src={notification.imageUrl} alt="Notification Image" layout="fill" className="rounded-md object-cover" />
