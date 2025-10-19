@@ -3,6 +3,7 @@
 
 
 
+
 'use client';
 
 import Image from 'next/image';
@@ -71,7 +72,7 @@ const CountdownTimer = ({ endDate, isComingSoon }: { endDate: Date; isComingSoon
   const hasEnded = days === 0 && hours === 0 && minutes === 0 && seconds === 0;
 
   const timerLabel = isComingSoon ? "Coming Soon in:" : "Ending soon:";
-  const timerColor = isComingSoon ? "text-green-500 border-green-500/20" : "text-destructive border-destructive/20";
+  const timerColor = isComingSoon ? "text-teal-600 border-teal-500/20" : "text-destructive border-destructive/20";
   const finishedLabel = isComingSoon ? "Available Now" : "Ended";
   const finishedColor = "text-muted-foreground border-muted-foreground/20";
 
