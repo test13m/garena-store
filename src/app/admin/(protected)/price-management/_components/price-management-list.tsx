@@ -35,7 +35,7 @@ const formatDateForInput = (date?: Date) => {
 };
 
 const CategoryManager = ({ product, onCategoriesChange }: { product: Product, onCategoriesChange: (categories: string[]) => void }) => {
-    const [categories, setCategories] = useState(product.category || []);
+    const [categories, setCategories] = useState(Array.isArray(product.category) ? product.category : (product.category ? [product.category] : []));
     const [newCategory, setNewCategory] = useState('');
 
     const handleAddCategory = () => {
