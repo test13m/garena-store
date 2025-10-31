@@ -120,7 +120,7 @@ Thank you for your consideration.
       <DialogContent
         className={cn(
           'sm:max-w-md transition-all duration-300 ease-in-out',
-          isMobile && isShifted && 'top-[25%]'
+          isMobile && isShifted && 'top-[41%]'
         )}
       >
         {bannedInfo ? (
