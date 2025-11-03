@@ -42,16 +42,18 @@ export default function GamingIdModal({ isOpen, onOpenChange }: GamingIdModalPro
       return;
     }
     setIsLoading(true);
-    setBannedInfo(null);
     const result = await registerGamingId(gamingId);
     
-    toast({
-      title: result.success ? 'Success' : 'Error',
-      description: result.message,
-      variant: result.success ? 'default' : 'destructive',
-    });
-
-    if (result.success && result.user) {
+    if (result.success && result.isBanned) {
+      // Handle the case where the user is banned but successfully "logged in"
+      setBannedInfo({ message: result.banMessage || 'Your account has been suspended.', id: gamingId });
+      onOpenChange(false); // Close this modal to show the ban notice
+    } else if (result.success && result.user) {
+      // Handle successful registration/login
+      toast({
+        title: 'Success',
+        description: result.message,
+      });
       onOpenChange(false);
       // Check if it's a new registration by looking at the welcome message
       if (result.message.includes('800 coins')) {
@@ -60,12 +62,15 @@ export default function GamingIdModal({ isOpen, onOpenChange }: GamingIdModalPro
         // For returning users, show animation without coins
         setRegistrationSuccess({});
       }
-    } else if (result.isBanned) {
-      setBannedInfo({ message: result.banMessage || 'Your account has been suspended.', id: gamingId });
-      onOpenChange(false); // Close the registration modal
     } else {
-      setIsLoading(false);
+      // Handle other errors
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: result.message,
+      });
     }
+    setIsLoading(false);
   };
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {

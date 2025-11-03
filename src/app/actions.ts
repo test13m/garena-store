@@ -13,6 +13,8 @@
 
 
 
+
+
 'use server';
 
 import { customerFAQChatbot, type CustomerFAQChatbotInput } from '@/ai/flows/customer-faq-chatbot';
@@ -362,12 +364,26 @@ export async function registerGamingId(gamingId: string): Promise<{ success: boo
   }
 
   try {
+    const db = await connectToDatabase();
+    
+    const bannedUser = await db.collection<User>('users').findOne({ gamingId, isBanned: true });
+    if (bannedUser) {
+        // Log the user in by setting the cookie, but return the banned status
+        cookies().set('gaming_id', gamingId, { maxAge: 365 * 24 * 60 * 60, httpOnly: true });
+        return { 
+            success: true, 
+            message: 'This Gaming ID has been banned.', 
+            user: JSON.parse(JSON.stringify(bannedUser)),
+            isBanned: true, 
+            banMessage: bannedUser.banMessage 
+        };
+    }
+
     // --- PRE-REGISTRATION PROMOTION CHECK ---
     // This handles cases where the ID being registered is part of a visual ID relationship.
     await handlePreRegistrationPromotion(gamingId);
     // --- END PRE-REGISTRATION PROMOTION CHECK ---
 
-    const db = await connectToDatabase();
     const logoutHistoryCookie = cookies().get('logout_history')?.value;
     let logoutHistory = null;
     if(logoutHistoryCookie) {
@@ -376,11 +392,6 @@ export async function registerGamingId(gamingId: string): Promise<{ success: boo
         } catch (e) {
             // Malformed cookie, ignore
         }
-    }
-
-    const bannedUser = await db.collection<User>('users').findOne({ gamingId, isBanned: true });
-    if (bannedUser) {
-        return { success: false, message: 'This Gaming ID has been banned.', isBanned: true, banMessage: bannedUser.banMessage };
     }
 
     let user = await db.collection<User>('users').findOne({ gamingId });
@@ -459,8 +470,8 @@ export async function getUserData(): Promise<User | null> {
             cookies().delete('gaming_id');
             return null;
         }
+        // Even if banned, return the user object so the client can handle the ban UI
         if (user.isBanned) {
-            // Return the user object but client will handle the ban UI
             return JSON.parse(JSON.stringify(user));
         }
         
