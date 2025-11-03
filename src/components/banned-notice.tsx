@@ -72,6 +72,7 @@ Thank you for your consideration.
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent 
         className="sm:max-w-md"
+        onOpenAutoFocus={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
         onPointerDownOutside={(e) => e.preventDefault()}
         hideCloseButton={true}
@@ -83,12 +84,15 @@ Thank you for your consideration.
             </DialogTitle>
         </DialogHeader>
         <Alert variant="destructive">
-            <AlertTitle>Access Denied</AlertTitle>
+            <AlertTitle>Access Denied for ID: {gamingId}</AlertTitle>
             <AlertDescription>
                 {banMessage}
             </AlertDescription>
         </Alert>
-        <DialogFooter className="grid grid-cols-2 gap-2 mt-4">
+        <p className="text-sm text-muted-foreground pt-2">
+            If you believe this is a mistake, you can request a review from our support team.
+        </p>
+        <DialogFooter className="grid grid-cols-2 gap-2 mt-2">
             <Button onClick={handleUnbanRequest} variant="outline" className="w-full">
                 <Mail className="mr-2"/>
                 Request Unban
