@@ -153,6 +153,8 @@ Can be weekly, monthly, or yearly.
 
 Details shown when clicking the offer link.
 
+Special offers sent via notification are either for special users or as compensation for a system fault, as determined by the administration.
+
 ⚙️ Terms & Privacy Summary
 
 Accounts: Must use accurate info; users are responsible for passwords.
