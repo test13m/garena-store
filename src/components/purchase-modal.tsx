@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -67,25 +66,26 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
   
   // Countdown timer for QR code
   useEffect(() => {
-    if (step === 'qrPayment') {
-      const countdownTimer = setInterval(() => {
-        setQrCountdown(prev => {
-          if (prev <= 1) {
-            clearInterval(countdownTimer);
-            toast({
-              variant: 'destructive',
-              title: 'Session Expired',
-              description: 'Your payment session has expired. Please try again.',
-            });
-            handleClose();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(countdownTimer);
+    if (step !== 'qrPayment') return;
+
+    const countdownTimer = setInterval(() => {
+      setQrCountdown(prev => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(countdownTimer);
+  }, [step]);
+  
+  // Effect to handle session expiration
+  useEffect(() => {
+    if (qrCountdown <= 0 && step === 'qrPayment') {
+      toast({
+        variant: 'destructive',
+        title: 'Session Expired',
+        description: 'Your payment session has expired. Please try again.',
+      });
+      handleClose();
     }
-  }, [step, handleClose, toast]);
+  }, [qrCountdown, step, handleClose, toast]);
 
 
   // Polling for payment status
@@ -450,3 +450,5 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
     </Dialog>
   );
 }
+
+    
