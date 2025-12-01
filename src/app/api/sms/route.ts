@@ -169,20 +169,26 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Expire old locks that might have been missed
+// Expire old locks that might have been missed by client-side events
 async function expireOldLocks() {
     try {
         const db = await connectToDatabase();
         const now = new Date();
-        await db.collection<PaymentLock>('payment_locks').updateMany(
+        const result = await db.collection<PaymentLock>('payment_locks').updateMany(
             { status: 'active', expiresAt: { $lt: now } },
             { $set: { status: 'expired' } }
         );
+        if (result.modifiedCount > 0) {
+            console.log(`Expired ${result.modifiedCount} old payment locks.`);
+        }
     } catch (error) {
         console.error("Error expiring old payment locks:", error);
     }
 }
 
 // Run the expiration check periodically.
-// This is a simple way to handle it without a dedicated cron job system.
+// In a serverless environment, this might not run continuously,
+// but it will trigger on incoming requests, providing a cleanup mechanism.
 setInterval(expireOldLocks, 60 * 1000); // Check every minute
+// Immediately run once on server startup
+expireOldLocks();
