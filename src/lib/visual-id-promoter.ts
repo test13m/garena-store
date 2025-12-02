@@ -35,6 +35,10 @@ export async function promoteVisualId(user: User): Promise<void> {
         redeemDisabledAt: user.redeemDisabledAt,
         isHidden: user.isHidden,
         loginHistory: user.loginHistory,
+        // Carry over the ban status
+        isBanned: user.isBanned,
+        banMessage: user.banMessage,
+        bannedAt: user.bannedAt,
       };
       const insertResult = await db.collection<User>('users').insertOne(newUser as User, { session });
       const newUserId = insertResult.insertedId.toString();
