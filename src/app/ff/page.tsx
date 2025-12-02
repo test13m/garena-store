@@ -2,25 +2,27 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 
-export default function BrowserRedirect() {
+export default function ForceRedirectPage() {
   const [isInAppBrowser, setIsInAppBrowser] = useState(false);
   const [countdown, setCountdown] = useState(5);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
     const isFacebook = /FBAN|FBAV/.test(userAgent);
     const isInstagram = /Instagram/.test(userAgent);
     const isAndroid = /android/i.test(userAgent);
+    const isKnownInAppBrowser = isFacebook || isInstagram;
 
-    if (isFacebook || isInstagram) {
-      setIsInAppBrowser(true);
+    setIsInAppBrowser(isKnownInAppBrowser);
 
-      // Start countdown
+    if (isKnownInAppBrowser) {
+      // Logic for in-app browsers
       const countdownInterval = setInterval(() => {
         setCountdown(prev => {
           if (prev <= 1) {
@@ -32,10 +34,9 @@ export default function BrowserRedirect() {
         });
       }, 1000);
 
-      // Start redirect loop after countdown
       if (isAndroid) {
         setTimeout(() => {
-          const currentUrl = window.location.href;
+          const currentUrl = window.location.href.replace('/ff', ''); // Redirect to homepage
           const intentUrl = `intent:${currentUrl.replace(/^https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;end`;
           
           const redirectInterval = setInterval(() => {
@@ -49,13 +50,24 @@ export default function BrowserRedirect() {
           return () => clearInterval(redirectInterval);
         }, 5000); // Wait 5 seconds before starting the loop
       }
+    } else {
+      // If it's not an in-app browser, redirect to home immediately.
+      router.replace('/');
     }
-  }, []);
+
+  }, [router]);
 
   if (!isInAppBrowser) {
-    return null;
+    // Render a loading state while the initial check and redirect happens.
+    return (
+      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black text-white p-8">
+        <Loader2 className="w-16 h-16 animate-spin text-primary" />
+        <p className="mt-4">Loading...</p>
+      </div>
+    );
   }
-
+  
+  // Render the splash screen for in-app browsers.
   const progress = ((5 - countdown) / 5) * 100;
 
   return (

@@ -16,7 +16,6 @@ import EventModal from '@/components/event-modal';
 import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging';
 import { app } from '@/lib/firebase/client';
 import { RefreshProvider } from '@/context/RefreshContext';
-import BrowserRedirect from '@/components/browser-redirect';
 import { usePathname } from 'next/navigation';
 import BannedNotice from '@/components/banned-notice';
 import { useToast } from '@/hooks/use-toast';
@@ -199,7 +198,6 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className={cn('font-body antialiased flex flex-col min-h-screen')}>
-        <BrowserRedirect />
         <RefreshProvider>
           {isLoading && <LoadingScreen />}
           <div className={cn('flex flex-col flex-1', isAdPage && 'h-screen')}>
