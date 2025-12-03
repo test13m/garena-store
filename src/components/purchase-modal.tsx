@@ -21,6 +21,13 @@ import ProductMedia from './product-media';
 import QRCode from 'react-qr-code';
 import { createPaymentLock, releasePaymentLock, checkPaymentStatus } from './purchase-actions';
 
+// Declare fbq for TypeScript
+declare global {
+  interface Window {
+    fbq: (...args: any[]) => void;
+  }
+}
+
 // The product passed to this modal has its _id serialized to a string
 interface ProductWithStringId extends Omit<Product, '_id'> {
   _id: string;
@@ -140,7 +147,7 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
       return;
     }
     setIsLoading(true);
-    const result = await registerAction(gamingId);
+    const result = await registerGamingId(gamingId);
     if (result.success && result.user) {
         toast({ title: 'Success', description: result.message });
         window.location.reload();
@@ -198,12 +205,17 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
   useEffect(() => {
     let successTimer: NodeJS.Timeout;
     if (step === 'success') {
+      // Fire Meta Pixel event for successful purchase
+      if (typeof window.fbq === 'function') {
+        window.fbq('track', 'Purchase', { value: finalPrice, currency: 'INR' });
+      }
+
       successTimer = setTimeout(() => {
         handleClose();
       }, 5000); // Auto-close success modal after 5 seconds
     }
     return () => clearTimeout(successTimer);
-  }, [step, handleClose]);
+  }, [step, handleClose, finalPrice]);
 
   const renderContent = () => {
     switch (step) {
