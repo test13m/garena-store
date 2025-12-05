@@ -48,6 +48,7 @@ export default function IpLogList({ initialUsers, initialHasMore, totalUsers }: 
 
     const searchIp = searchParams.get('ip') || '';
     const searchId = searchParams.get('id') || '';
+    const searchFingerprint = searchParams.get('fingerprint') || '';
 
     useEffect(() => {
         setUsers(initialUsers);
@@ -58,7 +59,7 @@ export default function IpLogList({ initialUsers, initialHasMore, totalUsers }: 
     const handleLoadMore = async () => {
         startTransition(async () => {
             const nextPage = page + 1;
-            const { users: newUsers, hasMore: newHasMore } = await getIpHistory(nextPage, searchId, searchIp);
+            const { users: newUsers, hasMore: newHasMore } = await getIpHistory(nextPage, searchId, searchIp, searchFingerprint);
             setUsers(prev => [...prev, ...newUsers]);
             setHasMore(newHasMore);
             setPage(nextPage);
@@ -70,9 +71,11 @@ export default function IpLogList({ initialUsers, initialHasMore, totalUsers }: 
         const formData = new FormData(event.currentTarget);
         const ipQuery = formData.get('ip') as string;
         const idQuery = formData.get('id') as string;
+        const fingerprintQuery = formData.get('fingerprint') as string;
         const params = new URLSearchParams();
         if (ipQuery) params.set('ip', ipQuery);
         if (idQuery) params.set('id', idQuery);
+        if (fingerprintQuery) params.set('fingerprint', fingerprintQuery);
         router.push(`${pathname}?${params.toString()}`);
     };
 
@@ -90,11 +93,15 @@ export default function IpLogList({ initialUsers, initialHasMore, totalUsers }: 
                         <form onSubmit={handleSearch} className="flex flex-wrap items-end gap-2">
                             <div className="flex-grow space-y-1">
                                 <Label htmlFor="search-id">Gaming ID</Label>
-                                <Input name="id" id="search-id" placeholder="Search by Gaming ID..." defaultValue={searchId} className="w-full sm:w-48"/>
+                                <Input name="id" id="search-id" placeholder="Search by Gaming ID..." defaultValue={searchId} className="w-full sm:w-40"/>
                             </div>
                             <div className="flex-grow space-y-1">
                                 <Label htmlFor="search-ip">IP Address</Label>
-                                <Input name="ip" id="search-ip" placeholder="Search by IP..." defaultValue={searchIp} className="w-full sm:w-48"/>
+                                <Input name="ip" id="search-ip" placeholder="Search by IP..." defaultValue={searchIp} className="w-full sm:w-40"/>
+                            </div>
+                            <div className="flex-grow space-y-1">
+                                <Label htmlFor="search-fingerprint">Fingerprint ID</Label>
+                                <Input name="fingerprint" id="search-fingerprint" placeholder="Search by Fingerprint..." defaultValue={searchFingerprint} className="w-full sm:w-40"/>
                             </div>
                             <Button type="submit" variant="outline" size="icon"><Search className="h-4 w-4" /></Button>
                         </form>

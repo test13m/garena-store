@@ -8,7 +8,7 @@ import { unstable_noStore as noStore } from 'next/cache';
 
 const PAGE_SIZE = 20;
 
-export async function getIpHistory(page: number, searchId: string, searchIp: string) {
+export async function getIpHistory(page: number, searchId: string, searchIp: string, searchFingerprint: string) {
     noStore();
     const isAdmin = await isAdminAuthenticated();
     if (!isAdmin) {
@@ -18,21 +18,36 @@ export async function getIpHistory(page: number, searchId: string, searchIp: str
     const db = await connectToDatabase();
     const skip = (page - 1) * PAGE_SIZE;
 
-    let query: any = { ipHistory: { $exists: true, $not: { $size: 0 } } };
+    let query: any = { };
+    const andConditions = [];
 
     if (searchId) {
-        query.gamingId = { $regex: searchId, $options: 'i' };
+        andConditions.push({ gamingId: { $regex: searchId, $options: 'i' } });
     }
     if (searchIp) {
-        query['ipHistory.ip'] = { $regex: searchIp.replace(/\./g, '\\.'), $options: 'i' };
+        andConditions.push({ 'ipHistory.ip': { $regex: searchIp.replace(/\./g, '\\.'), $options: 'i' } });
     }
+    if (searchFingerprint) {
+        andConditions.push({ 'fingerprintHistory.fingerprint': { $regex: searchFingerprint, $options: 'i' } });
+    }
+    
+    if (andConditions.length > 0) {
+        query.$and = andConditions;
+    } else {
+        // If no search, only show users with some history
+        query.$or = [
+            { ipHistory: { $exists: true, $not: { $size: 0 } } },
+            { fingerprintHistory: { $exists: true, $not: { $size: 0 } } }
+        ];
+    }
+
 
     const usersFromDb = await db.collection<User>('users')
         .find(query)
-        .sort({ 'ipHistory.timestamp': -1 }) // Sort by most recent IP entry
+        .sort({ 'visits.0': -1 }) // Sort by most recent visit
         .skip(skip)
         .limit(PAGE_SIZE)
-        .project({ gamingId: 1, ipHistory: 1, fingerprintHistory: 1 }) // Also fetch fingerprint history
+        .project({ gamingId: 1, ipHistory: 1, fingerprintHistory: 1 })
         .toArray();
     
     const totalUsers = await db.collection('users').countDocuments(query);

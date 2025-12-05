@@ -1,4 +1,5 @@
 
+
 import IpLogList from './_components/ip-log-list';
 import { getIpHistory } from './actions';
 import { unstable_noStore as noStore } from 'next/cache';
@@ -12,8 +13,9 @@ export default async function AdminIpLoggerPage({
   const page = typeof searchParams.page === 'string' ? Number(searchParams.page) : 1;
   const searchId = typeof searchParams.id === 'string' ? searchParams.id : '';
   const searchIp = typeof searchParams.ip === 'string' ? searchParams.ip : '';
+  const searchFingerprint = typeof searchParams.fingerprint === 'string' ? searchParams.fingerprint : '';
   
-  const { users, hasMore, totalUsers } = await getIpHistory(page, searchId, searchIp);
+  const { users, hasMore, totalUsers } = await getIpHistory(page, searchId, searchIp, searchFingerprint);
 
   return (
     <IpLogList
