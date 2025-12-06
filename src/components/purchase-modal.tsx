@@ -331,27 +331,32 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
                     {isLoading ? <Loader2 className="animate-spin" /> : `Pay ₹${finalPrice} via UPI`}
                     </Button>
                     {!product.onlyUpi && !user.isRedeemDisabled && (
-                         <Dialog>
-                            <DialogTrigger asChild>
-                                <Button className="w-full font-sans" variant="secondary" disabled={isLoading}>
-                                    {isLoading ? <Loader2 className="animate-spin" /> : `Use Redeem Code`}
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle className="text-2xl font-headline">Use Redeem Code</DialogTitle>
-                                </DialogHeader>
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="redeem-code">Enter your Redeem Code</Label>
-                                        <Input id="redeem-code" placeholder="XXXX-XXXX-XXXX" value={redeemCode} onChange={e => setRedeemCode(e.target.value)} />
-                                    </div>
-                                    <Button onClick={handleRedeemSubmit} className="w-full" disabled={isLoading}>
-                                        {isLoading ? <Loader2 className="animate-spin" /> : `Submit Code & Buy`}
+                         <div className="text-center">
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button className="w-full font-sans" variant="secondary" disabled={isLoading}>
+                                        {isLoading ? <Loader2 className="animate-spin" /> : `Use Redeem Code`}
                                     </Button>
-                                </div>
-                            </DialogContent>
-                        </Dialog>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle className="text-2xl font-headline">Use Redeem Code</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="redeem-code">Enter your Redeem Code</Label>
+                                            <Input id="redeem-code" placeholder="XXXX-XXXX-XXXX" value={redeemCode} onChange={e => setRedeemCode(e.target.value)} />
+                                        </div>
+                                        <Button onClick={handleRedeemSubmit} className="w-full" disabled={isLoading}>
+                                            {isLoading ? <Loader2 className="animate-spin" /> : `Submit Code & Buy`}
+                                        </Button>
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
+                             {convenienceFee > 0 && (
+                                <p className="text-xs text-muted-foreground mt-1.5">Processing &amp; tax fee not applied on redeem code payment.</p>
+                             )}
+                        </div>
                     )}
                 </div>
                 <p className="text-xs text-muted-foreground text-center mt-2">
