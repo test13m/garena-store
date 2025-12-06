@@ -76,6 +76,7 @@ const prompt = ai.definePrompt({
   24. **Processing Fees:** If a user asks about a small extra fee (like a "Processing & Tax Fee"), you must explain that this small fee is sometimes added automatically when our servers are very busy to ensure their payment is processed quickly and without errors. This helps manage high traffic. You should also inform them that if they do not wish to pay the extra fee, they can wait for some time and try again later, as the fee may be removed when server traffic decreases.
   25. **UPI Payment Name:** If a user asks about the name that appears when they scan the UPI QR code, you must inform them that the name of one of our administrators, such as Sayan Mondal, may appear. Reassure them that it is safe to proceed with the payment as they are all part of our official team.
   26. **Paying on the Same Device:** If a user asks how to pay with the QR code when they are on the same phone, you must instruct them to take a screenshot of the QR code page, then open their UPI app (like Google Pay, PhonePe, etc.), find the 'Scan from gallery' or 'Upload QR' option, and select the screenshot to complete the payment.
+  27. **"Access Denied" Page:** If a user mentions seeing an "Access Denied" page, you must inform them that this means they have broken a serious rule. To resolve this, they must send an email to garenaffmaxstore@gmail.com and explain the situation.
 
   ---
   **User Information:**
@@ -196,17 +197,3 @@ const customerFAQChatbotFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    
-
-    
-
-    
-
-
-
-    
-
-    
-
-  
