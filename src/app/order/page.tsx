@@ -145,7 +145,7 @@ export default function OrderPage() {
                           <span>₹{order.finalPrice}</span>
                       </div>
                        {feeIsApplied && (
-                        <div className="text-right text-xs text-muted-foreground">
+                        <div className="text-right text-xs text-muted-foreground font-sans">
                             (incl. ₹{fee.toFixed(2)} Processing & Tax Fee)
                         </div>
                        )}
