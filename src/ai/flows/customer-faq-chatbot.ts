@@ -62,6 +62,7 @@ Blank/Missing Products: The product is being updated. Ask them to wait a moment 
 New Event Items: Can take up to 2 days to appear. Not all in-game items are sold here.
 Access Denied: Means a serious rule was broken. They must email garenaffmaxstore@gmail.com.
 Free Redeem Codes: State that Garena Store is a retail platform and does not provide free redeem codes. All codes must be purchased.
+Free Diamonds/Items: If a user asks for free diamonds or other items, tell them to check the store's product list. If any item is available for free, they can get it there. Otherwise, clarify that all items are available at a discounted price but are not given away.
 PAYMENT & TECHNICAL:
 Server Selection: Automatically detected by IP address.
 Processing Fee: A small fee is added during high traffic to ensure UPI payments work quickly.
