@@ -24,6 +24,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogClose,
 } from '@/components/ui/dialog';
 
 interface Message {
@@ -281,17 +282,28 @@ export default function FaqChatbot() {
       </SheetContent>
     </Sheet>
     <Dialog open={!!zoomedMedia} onOpenChange={() => setZoomedMedia(null)}>
-        <DialogContent className="max-w-3xl w-full h-auto max-h-[90vh] p-4 flex items-center justify-center">
-             <DialogHeader>
-              <DialogTitle className="sr-only">Zoomed Media</DialogTitle>
+        <DialogContent className="max-w-3xl w-full p-0 bg-transparent border-none shadow-none" hideCloseButton={true}>
+            <DialogHeader>
+                <DialogTitle className="sr-only">Zoomed Media</DialogTitle>
             </DialogHeader>
-            {zoomedMedia?.uri && (
-                zoomedMedia.type === 'image' ? (
-                    <Image src={zoomedMedia.uri} alt="Zoomed media" width={1200} height={800} className="max-w-full max-h-full object-contain" />
-                ) : (
-                    <video src={zoomedMedia.uri} className="max-w-full max-h-full" controls autoPlay />
-                )
-            )}
+            <div className="relative flex items-center justify-center">
+                 <DialogClose asChild>
+                    <button
+                        type="button"
+                        className="absolute -top-3 -right-3 z-10 rounded-full p-1.5 bg-white text-black transition-opacity hover:opacity-80 focus:outline-none"
+                        aria-label="Close"
+                    >
+                        <X className="h-5 w-5" />
+                    </button>
+                </DialogClose>
+                {zoomedMedia?.uri && (
+                    zoomedMedia.type === 'image' ? (
+                        <Image src={zoomedMedia.uri} alt="Zoomed media" width={1200} height={800} className="max-w-full max-h-[90vh] object-contain rounded-lg" />
+                    ) : (
+                        <video src={zoomedMedia.uri} className="max-w-full max-h-[90vh] rounded-lg" controls autoPlay />
+                    )
+                )}
+            </div>
         </DialogContent>
     </Dialog>
     </>
