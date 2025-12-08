@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, type FormEvent, useEffect, useCallback } from 'react';
-import { Bot, Loader2, Send, Sparkles } from 'lucide-react';
+import { Bot, Loader2, Send, Sparkles, Image as ImageIcon, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -18,11 +18,13 @@ import { useToast } from '@/hooks/use-toast';
 import { askQuestion, getChatHistory } from '@/app/actions';
 import { ScrollArea } from './ui/scroll-area';
 import { type AiLog } from '@/lib/definitions';
+import Image from 'next/image';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp?: Date;
+  photoDataUri?: string;
 }
 
 const FormattedDate = ({ date }: { date?: Date }) => {
@@ -44,7 +46,9 @@ export default function FaqChatbot() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [photo, setPhoto] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -93,26 +97,37 @@ export default function FaqChatbot() {
     textarea.style.height = 'auto'; // Reset height
     textarea.style.height = `${textarea.scrollHeight}px`; // Set to content height
   };
+  
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhoto(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const question = textareaRef.current?.value;
 
-    if (!question || isLoading) return;
+    if ((!question && !photo) || isLoading) return;
 
     setIsLoading(true);
-    const userMessage: Message = { role: 'user', content: question, timestamp: new Date() };
+    const userMessage: Message = { role: 'user', content: question || 'Please analyze this image.', timestamp: new Date(), photoDataUri: photo || undefined };
     setMessages((prev) => [...prev, userMessage]);
 
     if (textareaRef.current) {
       textareaRef.current.value = '';
       textareaRef.current.style.height = 'auto'; // Reset height after submit
     }
+    setPhoto(null);
     
-    // Prepare history for the AI
     const historyForAI = messages.map(m => ({ role: m.role, content: m.content }));
 
-    const result = await askQuestion({ question, history: historyForAI });
+    const result = await askQuestion({ question: userMessage.content, history: historyForAI, photoDataUri: userMessage.photoDataUri });
 
     if (result.success && result.answer) {
       const assistantMessage: Message = { role: 'assistant', content: result.answer!, timestamp: new Date() };
@@ -123,7 +138,6 @@ export default function FaqChatbot() {
         title: 'Error',
         description: result.error,
       });
-      // remove the user's message if there was an error
       setMessages((prev) => prev.slice(0, -1));
     }
     setIsLoading(false);
@@ -147,7 +161,7 @@ export default function FaqChatbot() {
             Garena Assistant
           </SheetTitle>
           <SheetDescription>
-          Have a question? Ask me anything about our services. For example: "How do I earn coins?"
+          Have a question? Ask me anything about our services. You can also upload an image.
           </SheetDescription>
         </SheetHeader>
         <div className="flex-grow mb-4 overflow-hidden">
@@ -172,6 +186,11 @@ export default function FaqChatbot() {
                             : 'bg-muted rounded-bl-none'
                         }`}
                         >
+                        {message.photoDataUri && (
+                          <div className="relative w-full aspect-square mb-2 rounded-lg overflow-hidden">
+                            <Image src={message.photoDataUri} alt="User upload" fill className="object-cover" />
+                          </div>
+                        )}
                         {message.content}
                         </div>
                         <p className="text-xs text-muted-foreground px-1"><FormattedDate date={message.timestamp} /></p>
@@ -189,18 +208,37 @@ export default function FaqChatbot() {
             </ScrollArea>
         </div>
         <SheetFooter>
-          <form onSubmit={handleSubmit} className="flex w-full items-end space-x-2">
-            <Textarea
-              ref={textareaRef}
-              placeholder="Ask a question..."
-              disabled={isLoading || isHistoryLoading}
-              className="resize-none max-h-32 min-h-10"
-              rows={1}
-              onInput={handleTextareaInput}
-            />
-            <Button type="submit" size="icon" disabled={isLoading || isHistoryLoading}>
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </Button>
+          <form onSubmit={handleSubmit} className="flex flex-col w-full gap-2">
+             {photo && (
+              <div className="relative w-24 h-24 rounded-md border p-1 bg-muted/50">
+                <Image src={photo} alt="Preview" fill className="object-cover rounded-md" />
+                <Button 
+                  size="icon" 
+                  variant="destructive" 
+                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                  onClick={() => setPhoto(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+            <div className="flex w-full items-end space-x-2">
+              <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
+              <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isLoading || isHistoryLoading}>
+                <ImageIcon className="h-5 w-5" />
+              </Button>
+              <Textarea
+                ref={textareaRef}
+                placeholder="Ask a question..."
+                disabled={isLoading || isHistoryLoading}
+                className="resize-none max-h-32 min-h-10"
+                rows={1}
+                onInput={handleTextareaInput}
+              />
+              <Button type="submit" size="icon" disabled={isLoading || isHistoryLoading}>
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </Button>
+            </div>
           </form>
         </SheetFooter>
       </SheetContent>
