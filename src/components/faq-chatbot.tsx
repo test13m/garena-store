@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, type FormEvent, useEffect, useCallback } from 'react';
-import { Bot, Loader2, Send, Sparkles, Image as ImageIcon, X } from 'lucide-react';
+import { Bot, Loader2, Send, Sparkles, Image as ImageIcon, X, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -19,12 +19,19 @@ import { askQuestion, getChatHistory } from '@/app/actions';
 import { ScrollArea } from './ui/scroll-area';
 import { type AiLog } from '@/lib/definitions';
 import Image from 'next/image';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp?: Date;
-  photoDataUri?: string;
+  mediaDataUri?: string;
+  mediaType?: 'image' | 'video';
 }
 
 const FormattedDate = ({ date }: { date?: Date }) => {
@@ -46,7 +53,9 @@ export default function FaqChatbot() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
-  const [photo, setPhoto] = useState<string | null>(null);
+  const [media, setMedia] = useState<{ uri: string; type: 'image' | 'video' } | null>(null);
+  const [zoomedMedia, setZoomedMedia] = useState<{ uri: string; type: 'image' | 'video' } | null>(null);
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -98,12 +107,22 @@ export default function FaqChatbot() {
     textarea.style.height = `${textarea.scrollHeight}px`; // Set to content height
   };
   
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          variant: 'destructive',
+          title: 'File too large',
+          description: 'Please select a file smaller than 5MB.',
+        });
+        return;
+      }
+
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPhoto(reader.result as string);
+        const type = file.type.startsWith('image/') ? 'image' : 'video';
+        setMedia({ uri: reader.result as string, type });
       };
       reader.readAsDataURL(file);
     }
@@ -113,21 +132,27 @@ export default function FaqChatbot() {
     e.preventDefault();
     const question = textareaRef.current?.value;
 
-    if ((!question && !photo) || isLoading) return;
+    if ((!question && !media) || isLoading) return;
 
     setIsLoading(true);
-    const userMessage: Message = { role: 'user', content: question || 'Please analyze this image.', timestamp: new Date(), photoDataUri: photo || undefined };
+    const userMessage: Message = { 
+      role: 'user', 
+      content: question || 'Please analyze this media.', 
+      timestamp: new Date(), 
+      mediaDataUri: media?.uri,
+      mediaType: media?.type
+    };
     setMessages((prev) => [...prev, userMessage]);
 
     if (textareaRef.current) {
       textareaRef.current.value = '';
       textareaRef.current.style.height = 'auto'; // Reset height after submit
     }
-    setPhoto(null);
+    setMedia(null);
     
     const historyForAI = messages.map(m => ({ role: m.role, content: m.content }));
 
-    const result = await askQuestion({ question: userMessage.content, history: historyForAI, photoDataUri: userMessage.photoDataUri });
+    const result = await askQuestion({ question: userMessage.content, history: historyForAI, mediaDataUri: userMessage.mediaDataUri });
 
     if (result.success && result.answer) {
       const assistantMessage: Message = { role: 'assistant', content: result.answer!, timestamp: new Date() };
@@ -144,6 +169,7 @@ export default function FaqChatbot() {
   };
 
   return (
+    <>
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button
@@ -161,7 +187,7 @@ export default function FaqChatbot() {
             Garena Assistant
           </SheetTitle>
           <SheetDescription>
-          Have a question? Ask me anything about our services. You can also upload an image.
+          Have a question? Ask me anything about our services. You can also upload an image or video (max 5MB).
           </SheetDescription>
         </SheetHeader>
         <div className="flex-grow mb-4 overflow-hidden">
@@ -186,9 +212,16 @@ export default function FaqChatbot() {
                             : 'bg-muted rounded-bl-none'
                         }`}
                         >
-                        {message.photoDataUri && (
-                          <div className="relative w-full aspect-square mb-2 rounded-lg overflow-hidden">
-                            <Image src={message.photoDataUri} alt="User upload" fill className="object-cover" />
+                        {message.mediaDataUri && (
+                          <div 
+                            className="relative w-full aspect-square mb-2 rounded-lg overflow-hidden cursor-pointer"
+                            onClick={() => setZoomedMedia({ uri: message.mediaDataUri!, type: message.mediaType! })}
+                          >
+                             {message.mediaType === 'image' ? (
+                                <Image src={message.mediaDataUri} alt="User upload" fill className="object-cover" />
+                              ) : (
+                                <video src={message.mediaDataUri} className="object-cover w-full h-full" playsInline muted loop autoPlay />
+                              )}
                           </div>
                         )}
                         {message.content}
@@ -209,21 +242,25 @@ export default function FaqChatbot() {
         </div>
         <SheetFooter>
           <form onSubmit={handleSubmit} className="flex flex-col w-full gap-2">
-             {photo && (
+             {media && (
               <div className="relative w-24 h-24 rounded-md border p-1 bg-muted/50">
-                <Image src={photo} alt="Preview" fill className="object-cover rounded-md" />
+                 {media.type === 'image' ? (
+                    <Image src={media.uri} alt="Preview" fill className="object-cover rounded-md" />
+                 ) : (
+                    <video src={media.uri} className="object-cover w-full h-full rounded-md" playsInline muted loop autoPlay />
+                 )}
                 <Button 
                   size="icon" 
                   variant="destructive" 
                   className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                  onClick={() => setPhoto(null)}
+                  onClick={() => setMedia(null)}
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
             )}
             <div className="flex w-full items-end space-x-2">
-              <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
+              <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*,video/*" className="hidden" />
               <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isLoading || isHistoryLoading}>
                 <ImageIcon className="h-5 w-5" />
               </Button>
@@ -243,5 +280,20 @@ export default function FaqChatbot() {
         </SheetFooter>
       </SheetContent>
     </Sheet>
+    <Dialog open={!!zoomedMedia} onOpenChange={() => setZoomedMedia(null)}>
+        <DialogContent className="max-w-3xl w-full h-auto max-h-[90vh] p-4 flex items-center justify-center">
+             <DialogHeader>
+              <DialogTitle className="sr-only">Zoomed Media</DialogTitle>
+            </DialogHeader>
+            {zoomedMedia?.uri && (
+                zoomedMedia.type === 'image' ? (
+                    <Image src={zoomedMedia.uri} alt="Zoomed media" width={1200} height={800} className="max-w-full max-h-full object-contain" />
+                ) : (
+                    <video src={zoomedMedia.uri} className="max-w-full max-h-full" controls autoPlay />
+                )
+            )}
+        </DialogContent>
+    </Dialog>
+    </>
   );
 }

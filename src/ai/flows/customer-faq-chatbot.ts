@@ -24,8 +24,8 @@ const CustomerFAQChatbotInputSchema = z.object({
   history: z.array(MessageSchema).optional().describe('The previous conversation history.'),
   gamingId: z.string().optional().describe("The user's real Gaming ID."),
   visualGamingId: z.string().optional().describe("The user's display-only Gaming ID."),
-  photoDataUri: z.string().optional().describe(
-    "An optional photo provided by the user, as a data URI. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+  mediaDataUri: z.string().optional().describe(
+    "An optional photo or video provided by the user, as a data URI. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
   ),
 });
 export type CustomerFAQChatbotInput = z.infer<typeof CustomerFAQChatbotInputSchema>;
@@ -146,9 +146,9 @@ For help or redeem code payments, contact:
 
   Now, please answer the following user question based on the conversation history and provided context:
   "{{question}}"
-  {{#if photoDataUri}}
-  The user has also provided this image for context:
-  {{media url=photoDataUri}}
+  {{#if mediaDataUri}}
+  The user has also provided this image or video for context:
+  {{media url=mediaDataUri}}
   {{/if}}
 `});
 
