@@ -6,10 +6,13 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search } from 'lucide-react';
-import { getPaymentSessions } from '../actions';
+import { Loader2, Search, ZapOff } from 'lucide-react';
+import { getPaymentSessions, forceExpireLock } from '../actions';
 import { Input } from '@/components/ui/input';
 import type { PaymentLock } from '@/lib/definitions';
+import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+
 
 interface PaymentSessionListProps {
     initialSessions: PaymentLock[];
@@ -47,6 +50,7 @@ export default function PaymentSessionList({ initialSessions, initialHasMore, to
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    const { toast } = useToast();
 
     const search = searchParams.get('search') || '';
 
@@ -75,6 +79,18 @@ export default function PaymentSessionList({ initialSessions, initialHasMore, to
         params.delete('page');
         router.push(`${pathname}?${params.toString()}`);
     };
+
+    const handleForceExpire = async (lockId: string) => {
+        startTransition(async () => {
+            const result = await forceExpireLock(lockId);
+            if(result.success) {
+                toast({ title: 'Success', description: result.message });
+                setSessions(prev => prev.map(s => s._id.toString() === lockId ? {...s, status: 'expired'} : s));
+            } else {
+                toast({ variant: 'destructive', title: 'Error', description: result.message });
+            }
+        });
+    }
 
     const getStatusVariant = (status: PaymentLock['status']) => {
         switch (status) {
@@ -123,9 +139,35 @@ export default function PaymentSessionList({ initialSessions, initialHasMore, to
                                         <p className="font-semibold">{session.productName}</p>
                                         <p className="text-sm font-mono text-muted-foreground">{session.gamingId}</p>
                                     </div>
-                                     <Badge variant={getStatusVariant(session.status)} className={getStatusClass(session.status)}>
-                                        {session.status}
-                                    </Badge>
+                                    <div className="flex items-center gap-2">
+                                         {session.status === 'active' && (
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                     <Button variant="destructive" size="sm" disabled={isPending}>
+                                                        <ZapOff className="mr-2 h-4 w-4"/>
+                                                        Force Expire
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            This will manually expire the payment session for {session.gamingId}. This cannot be undone.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleForceExpire(session._id.toString())}>
+                                                            Confirm
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                         )}
+                                         <Badge variant={getStatusVariant(session.status)} className={getStatusClass(session.status)}>
+                                            {session.status}
+                                        </Badge>
+                                    </div>
                                 </div>
                                 <div className="text-sm text-muted-foreground flex justify-between items-center border-t pt-2">
                                     <p>Amount: <span className="font-bold font-sans text-foreground">₹{session.amount.toFixed(2)}</span></p>
