@@ -288,7 +288,7 @@ export default function FaqChatbot() {
                     </button>
                 </DialogClose>
                 {zoomedMedia?.uri && (
-                  <Image src={zoomedMedia.uri} alt="Zoomed media" width={1200} height={800} className="max-w-full max-h-[90vh] object-contain rounded-lg" />
+                  <Image src={zoomedMedia.uri} alt="Zoomed media" width={1200} height={800} className="max-w-full max-h-[70vh] object-contain rounded-lg" />
                 )}
             </div>
         </DialogContent>
