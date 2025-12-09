@@ -21,13 +21,6 @@ import ProductMedia from './product-media';
 import QRCode from 'react-qr-code';
 import { createPaymentLock, releasePaymentLock, checkPaymentStatus, findAvailableUpiPrice } from './purchase-actions';
 
-// Declare fbq for TypeScript
-declare global {
-  interface Window {
-    fbq: (...args: any[]) => void;
-  }
-}
-
 // The product passed to this modal has its _id serialized to a string
 interface ProductWithStringId extends Omit<Product, '_id'> {
   _id: string;
@@ -60,7 +53,6 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
   const router = useRouter();
   const { toast } = useToast();
   const eligibilityCheckPerformed = useRef(false);
-  const purchaseEventFired = useRef(false); // Ref to track if purchase event was fired
   const { triggerRefresh } = useRefresh();
   const pollingInterval = useRef<NodeJS.Timeout | null>(null);
 
@@ -229,18 +221,12 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
   useEffect(() => {
     let successTimer: NodeJS.Timeout;
     if (step === 'success') {
-      // Fire Meta Pixel event for successful purchase only once
-      if (typeof window.fbq === 'function' && !purchaseEventFired.current) {
-        window.fbq('track', 'Purchase', { value: finalPrice, currency: 'INR' });
-        purchaseEventFired.current = true; // Mark as fired
-      }
-
       successTimer = setTimeout(() => {
         handleClose();
       }, 5000); // Auto-close success modal after 5 seconds
     }
     return () => clearTimeout(successTimer);
-  }, [step, handleClose, finalPrice]);
+  }, [step, handleClose]);
 
   const renderContent = () => {
     switch (step) {
