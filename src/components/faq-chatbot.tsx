@@ -251,7 +251,7 @@ export default function FaqChatbot() {
                 </Button>
               </div>
             )}
-            <div className="flex w-full items-end space-x-2">
+            <div className="flex w-full items-end space-x-1.5">
               <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
               <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isLoading || isHistoryLoading}>
                 <ImageIcon className="h-5 w-5" />
