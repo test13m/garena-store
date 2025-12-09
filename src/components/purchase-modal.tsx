@@ -340,7 +340,7 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
                                 </DialogContent>
                             </Dialog>
                              {convenienceFee > 0 && (
-                                <p className="text-xs text-muted-foreground mt-1.5">Processing &amp; tax fee not applied on redeem code payment.</p>
+                                <p className="text-xs text-muted-foreground mt-1.5">Processing & tax fee not applied on redeem code payment.</p>
                              )}
                         </div>
                     )}
@@ -372,7 +372,7 @@ export default function PurchaseModal({ product, user: initialUser, onClose }: P
         );
     case 'qrPayment':
         const upiId = "garenas@freecharge";
-        const upiUrl = `upi://pay?pa=${upiId}&pn=Garena&am=${finalPrice}&cu=INR&tn=Purchase for ${product.name} - ID: ${user?.gamingId}`;
+        const upiUrl = `upi://pay?pa=${upiId}&pn=Garena&am=${finalPrice}&cu=INR&tn=${user?.gamingId}`;
         const minutes = Math.floor(qrCountdown / 60);
         const seconds = qrCountdown % 60;
         return (
