@@ -7,8 +7,9 @@ import { sendPushNotification } from '@/lib/push-notifications';
 
 // --- SMS Parsing Logic ---
 function parseSms(body: string): { amount: number | null, upiRef: string | null } {
-    const amountMatch = body.match(/Rs\.?\s*(\d+(\.\d{2})?)/);
-    const upiRefMatch = body.match(/Ref:(\d+)/);
+    // New Regex for: "Bharat Interface for Money Received INR 1.00..."
+    const amountMatch = body.match(/Received INR\s*(\d+(\.\d{2})?)/);
+    const upiRefMatch = body.match(/Ref:(\d+)/); // Keep old ref match for compatibility
 
     return {
         amount: amountMatch ? parseFloat(amountMatch[1]) : null,
