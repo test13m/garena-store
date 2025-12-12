@@ -24,6 +24,7 @@ import BannedNotice from '@/components/banned-notice';
 import { useToast } from '@/hooks/use-toast';
 import Script from 'next/script';
 import MetaPixelPurchaseTracker from '@/components/meta-pixel-purchase-tracker';
+import BrowserRedirect from '@/components/browser-redirect';
 
 
 const FCM_TOKEN_KEY = 'fcm_token';
@@ -283,6 +284,7 @@ export default function RootLayout({
         </noscript>
       </head>
       <body className={cn('font-body antialiased flex flex-col min-h-screen')}>
+        <BrowserRedirect />
         <RefreshProvider>
           {isLoading && <LoadingScreen />}
           <div className={cn('flex flex-col flex-1', isAdPage && 'h-screen')}>
