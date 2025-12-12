@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { connectToDatabase } from '@/lib/mongodb';
@@ -8,12 +9,34 @@ import { ObjectId } from 'mongodb';
 const LOCK_TTL_MS = 90 * 1000; // 90 seconds
 
 /**
+ * Finds and expires any payment locks that are past their expiration time.
+ * This is a cleanup function to prevent stale locks.
+ */
+export async function expireOldPaymentLocks(): Promise<void> {
+    try {
+        const db = await connectToDatabase();
+        const now = new Date();
+        await db.collection<PaymentLock>('payment_locks').updateMany(
+            { status: 'active', expiresAt: { $lt: now } },
+            { $set: { status: 'expired' } }
+        );
+    } catch (error) {
+        console.error("Error expiring old payment locks:", error);
+        // Do not throw, as this is a background cleanup task.
+    }
+}
+
+
+/**
  * Finds the next available price for a UPI payment by checking for active and recently expired payment locks.
  * If the base amount is locked, it increments by 0.01 until an unlocked amount is found.
  * @param baseAmount The original price of the item.
  * @returns An object with the final available price and the convenience fee added.
  */
 export async function findAvailableUpiPrice(baseAmount: number): Promise<{ finalPrice: number; fee: number }> {
+    // First, run the cleanup task to expire any old locks.
+    await expireOldPaymentLocks();
+
     const db = await connectToDatabase();
     let finalPrice = parseFloat(baseAmount.toFixed(2));
     let fee = 0;
