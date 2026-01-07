@@ -6,8 +6,8 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, ZapOff } from 'lucide-react';
-import { getPaymentSessions, forceExpireLock } from '../actions';
+import { Loader2, Search, ZapOff, CheckCircle } from 'lucide-react';
+import { getPaymentSessions, forceExpireLock, approvePaymentManually } from '../actions';
 import { Input } from '@/components/ui/input';
 import type { PaymentLock } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
@@ -92,6 +92,18 @@ export default function PaymentSessionList({ initialSessions, initialHasMore, to
         });
     }
 
+    const handleManualApprove = async (lockId: string) => {
+        startTransition(async () => {
+            const result = await approvePaymentManually(lockId);
+             if(result.success) {
+                toast({ title: 'Success', description: result.message });
+                setSessions(prev => prev.map(s => s._id.toString() === lockId ? {...s, status: 'completed'} : s));
+            } else {
+                toast({ variant: 'destructive', title: 'Error', description: result.message });
+            }
+        });
+    }
+
     const getStatusVariant = (status: PaymentLock['status']) => {
         switch (status) {
             case 'active': return 'default';
@@ -124,7 +136,7 @@ export default function PaymentSessionList({ initialSessions, initialHasMore, to
                     </form>
                 </div>
                 <CardDescription>
-                    A log of every time a user has opened the payment QR code screen.
+                    A log of every time a user has opened the payment QR code screen. You can manually approve payments here if needed.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -140,6 +152,30 @@ export default function PaymentSessionList({ initialSessions, initialHasMore, to
                                         <p className="text-sm font-mono text-muted-foreground">{session.gamingId}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
+                                        {session.status !== 'completed' && (
+                                             <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="outline" size="sm" disabled={isPending}>
+                                                        <CheckCircle className="mr-2 h-4 w-4"/>
+                                                        Approve Payment
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Manually Approve Payment?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            This will create an order for {session.gamingId} for the amount of ₹{session.amount.toFixed(2)}. Use this if an automatic verification failed. This cannot be undone.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleManualApprove(session._id.toString())}>
+                                                            Confirm Approval
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        )}
                                          {session.status === 'active' && (
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
