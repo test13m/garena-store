@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { logoutAdmin } from '@/app/actions';
-import { Home, ListChecks, ListX, Users, LogOut, Banknote, Tag, ArchiveRestore, Coins, ShieldBan, Box, EyeOff, Bell, CalendarPlus, MessageCircle, SlidersHorizontal, FileCode, PersonStanding, BadgeCheck, History, Clapperboard, BellRing, GalleryHorizontal, Timer, MessageSquareText, ShieldX, Fingerprint, Ban, Download } from 'lucide-react';
+import { Home, ListChecks, ListX, Users, LogOut, Banknote, Tag, ArchiveRestore, Coins, ShieldBan, Box, EyeOff, Bell, CalendarPlus, MessageCircle, SlidersHorizontal, FileCode, PersonStanding, BadgeCheck, History, Clapperboard, BellRing, GalleryHorizontal, Timer, MessageSquareText, ShieldX, Fingerprint, Ban, Download, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
@@ -16,6 +16,7 @@ const navItems = [
   { href: '/admin/all-orders', label: 'All Orders', icon: Box },
   { href: '/admin/accounts', label: 'Registered Accounts', icon: Users },
   { href: '/admin/users', label: 'User Management', icon: ShieldBan },
+  { href: '/admin/active-users', label: 'Active Users', icon: Activity },
   { href: '/admin/banned-users', label: 'Banned Users', icon: ShieldX },
   { href: '/admin/hidden-users', label: 'Hidden Users', icon: EyeOff },
   { href: '/admin/user-product-controls', label: 'User-Product Control', icon: SlidersHorizontal },
