@@ -18,7 +18,9 @@ export async function GET(req: NextRequest) {
   try {
     const db = await connectToDatabase();
     // Get a cursor, which does not load all documents into memory at once.
-    const cursor = db.collection<AiLog>('ai_logs').find({}).sort({ createdAt: -1 });
+    // The .sort() has been removed to prevent the database memory limit error.
+    // The logs will be streamed in their natural (oldest first) order.
+    const cursor = db.collection<AiLog>('ai_logs').find({});
 
     // Create a ReadableStream to send data chunk by chunk.
     const stream = new ReadableStream({
